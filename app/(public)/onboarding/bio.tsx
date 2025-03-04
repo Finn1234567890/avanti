@@ -12,65 +12,19 @@ const TOTAL_STEPS = 4
 const CURRENT_STEP = 4
 
 export default function OnboardingBio() {
-  const { session } = useAuth()
+  const { session, refreshProfile } = useAuth()
   const [bio, setBio] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const handleComplete = async () => {
+  const handleNext = async () => {
     if (!bio.trim()) {
       setError('Please write something about yourself')
       return
     }
 
-    setLoading(true)
-    setError(null)
-
-    try {
-      // Get all stored onboarding data
-      const name = await AsyncStorage.getItem('onboarding_name')
-      const major = await AsyncStorage.getItem('onboarding_major')
-      const interests = JSON.parse(await AsyncStorage.getItem('onboarding_interests') || '[]')
-
-      if (!session?.user?.id || !name || !major) {
-        console.log(session?.user?.id, name, major)
-        throw new Error('Missing required profile information')
-      }
-
-      const profileData: ProfileData = {
-        'User-ID': session.user.id,
-        'name': name,
-        'major': major,
-        'tags': interests,
-        'description': bio.trim()
-      }
-
-      console.log('Final Profile Data:', profileData)
-
-      // Create profile
-      const { error: profileError } = await supabase
-        .from('Profile')
-        .insert([profileData])
-
-      if (profileError) throw profileError
-
-      // Clear onboarding data
-      await AsyncStorage.multiRemove([
-        'onboarding_name',
-        'onboarding_major',
-        'onboarding_interests',
-        'onboarding_bio'
-      ])
-
-      // Complete onboarding
-      router.replace('/(auth)/home')
-    } catch (e) {
-      const errorMessage = e instanceof Error ? e.message : 'An unexpected error occurred'
-      console.error('Profile creation error:', e)
-      setError(errorMessage)
-    } finally {
-      setLoading(false)
-    }
+    await AsyncStorage.setItem('onboarding_bio', bio.trim())
+    router.push('/onboarding/images')
   }
 
   return (
@@ -79,9 +33,9 @@ export default function OnboardingBio() {
       totalSteps={TOTAL_STEPS}
       title="Tell us about yourself"
       error={error}
-      buttonText="Complete"
+      buttonText="Next"
       buttonDisabled={!bio.trim()}
-      onButtonPress={handleComplete}
+      onButtonPress={handleNext}
       loading={loading}
     >
       <TextInput

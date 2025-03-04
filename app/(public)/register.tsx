@@ -6,59 +6,40 @@ import { supabase } from '../../lib/supabase/supabase'
 export default function Register() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [phone, setPhone] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const handleRegister = async () => {
+    if (!email || !password) {
+      setError('Please fill in all fields')
+      return
+    }
+
     setLoading(true)
     setError(null)
     
     try {
-      if (!phone.match(/^\+[1-9]\d{1,14}$/)) {
-        throw new Error('Please enter a valid phone number with country code (e.g., +1234567890)')
-      }
-
-      // First sign up
-      const { error: signUpError, data } = await supabase.auth.signUp({
-        phone,
-        password,
+      // Sign up
+      const { error: signUpError } = await supabase.auth.signUp({
         email,
+        password,
       })
       
-      if (signUpError) {
-        console.error('SignUp Error:', signUpError)
-        throw new Error(`Registration failed: ${signUpError.message}`)
-      }
+      if (signUpError) throw signUpError
 
-      if (!data.user) {
-        throw new Error('No user created during signup')
-      }
-
-      // Then immediately sign in
-      const { error: signInError, data: signInData } = await supabase.auth.signInWithPassword({
+      // Sign in immediately after signup
+      const { error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
-      if (signInError) {
-        console.error('SignIn Error:', signInError)
-        throw new Error(`Auto-login failed: ${signInError.message}`)
-      }
+      if (signInError) throw signInError
 
-      // Store phone number in session metadata for verification
-      await supabase.auth.updateUser({
-        data: { 
-          phone_number: phone,
-          phone_verified: false
-        }
-      })
-      
-      // Redirect to phone verification
-      router.replace('/(public)/verify-phone')
+      setLoading(false)
+      router.replace('/(public)/onboarding/name')
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : 'An unexpected error occurred'
-      console.error('Full Error:', e)
+      console.error('Registration error:', e)
       setError(errorMessage)
     } finally {
       setLoading(false)
@@ -71,10 +52,7 @@ export default function Register() {
       
       {error && <Text style={styles.error}>{error}</Text>}
       
-      <Text>Email</Text>
       <TextInput
-        testID="email-input"
-        accessibilityLabel="Email input field"
         style={styles.input}
         placeholder="Email"
         value={email}
@@ -83,22 +61,7 @@ export default function Register() {
         keyboardType="email-address"
       />
       
-      <Text>Phone Number</Text>
-      <Text style={styles.hint}>Format: +[country code][number] (e.g., +1234567890)</Text>
       <TextInput
-        testID="phone-input"
-        accessibilityLabel="Phone input field"
-        style={styles.input}
-        placeholder="+1234567890"
-        value={phone}
-        onChangeText={setPhone}
-        keyboardType="phone-pad"
-      />
-      
-      <Text>Password</Text>
-      <TextInput
-        testID="password-input"
-        accessibilityLabel="Password input field"
         style={styles.input}
         placeholder="Password"
         value={password}
@@ -161,10 +124,5 @@ const styles = StyleSheet.create({
   link: {
     color: '#000',
     textAlign: 'center',
-  },
-  hint: {
-    color: '#666',
-    fontSize: 12,
-    marginBottom: 5,
   },
 }) 
