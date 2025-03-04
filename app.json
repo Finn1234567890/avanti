@@ -5,6 +5,7 @@
       "expo-router"
     ],
     "name": "avanti-app",
-    "slug": "avanti-app"
+    "slug": "avanti-app",
+    "newArchEnabled": true
   }
 }

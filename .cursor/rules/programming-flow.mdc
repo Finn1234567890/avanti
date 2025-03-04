@@ -1,0 +1,8 @@
+---
+description: Rule used for the programing flow of the whole project
+globs: 
+---
+
+# This rule applies to the whole project. Whenever I tell you to programm something, I want you to look at the big picture and go feature by feature, always asking for my feedback, instead of implementing a lot of code at once.
+
+
