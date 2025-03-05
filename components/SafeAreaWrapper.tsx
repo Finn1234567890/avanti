@@ -1,8 +1,9 @@
-import { View, StyleSheet, SafeAreaView, Platform } from 'react-native'
+import { View, StyleSheet, Platform } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 
 export function SafeAreaWrapper({ children }: { children: React.ReactNode }) {
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.content}>
         {children}
       </View>

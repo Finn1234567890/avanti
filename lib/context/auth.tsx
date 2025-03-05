@@ -4,8 +4,9 @@ import { supabase } from '../supabase/supabase'
 import { router, useSegments } from 'expo-router'
 import { View, ActivityIndicator, StyleSheet } from 'react-native'
 
-type AuthContextType = {
+export type AuthContextType = {
   session: Session | null
+  signOut: () => Promise<void>
   loading: boolean
   hasProfile: boolean
   refreshProfile: () => Promise<void>
@@ -16,6 +17,7 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   hasProfile: false,
   refreshProfile: async () => {},
+  signOut: async () => {},
 })
 
 function useProtectedRoute(session: Session | null, hasProfile: boolean, loading: boolean) {
@@ -130,7 +132,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ session, loading, hasProfile, refreshProfile }}>
+    <AuthContext.Provider value={{ session, loading, hasProfile, refreshProfile, signOut: async () => {} }}>
       {children}
     </AuthContext.Provider>
   )

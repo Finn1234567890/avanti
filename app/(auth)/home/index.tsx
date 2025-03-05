@@ -1,18 +1,16 @@
-import { View, Text, Image, TouchableOpacity, StyleSheet, Dimensions, Animated, FlatList } from 'react-native'
-import { useState, useEffect, useRef } from 'react'
+import { View, Text, StyleSheet, FlatList, ViewToken, Dimensions, Platform } from 'react-native'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from '../../../lib/context/auth'
 import { supabase } from '../../../lib/supabase/supabase'
 import { SafeAreaWrapper } from '../../../components/SafeAreaWrapper'
+import { ProfileCard } from './components/ProfileCard'
+import { Profile } from './types'
+import { LoadingView } from './components/LoadingView'
+import { ErrorView } from './components/ErrorView'
 
-type Profile = {
-  'P-ID': string
-  'User-ID': string
-  name: string
-  major: string
-  description: string
-  tags: string[]
-  images: { url: string }[]
-}
+const PROFILES_PER_PAGE = 5
+const { height: SCREEN_HEIGHT } = Dimensions.get('window')
+const BOTTOM_NAV_HEIGHT = Platform.OS === 'ios' ? 83 : 60
 
 export default function Home() {
   const { session } = useAuth()
@@ -20,13 +18,22 @@ export default function Home() {
   const [currentImageIndexes, setCurrentImageIndexes] = useState<{[key: string]: number}>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [page, setPage] = useState(0)
+  const [hasMore, setHasMore] = useState(true)
+  const viewabilityConfig = useRef({
+    itemVisiblePercentThreshold: 50
+  })
 
   useEffect(() => {
     loadProfiles()
   }, [])
 
-  const loadProfiles = async () => {
+  const loadProfiles = async (pageNumber = 0) => {
     try {
+      console.log('Loading profiles for page:', pageNumber)
+      const from = pageNumber * PROFILES_PER_PAGE
+      const to = from + PROFILES_PER_PAGE - 1
+
       const { data: profilesData, error: profilesError } = await supabase
         .from('Profile')
         .select(`
@@ -35,17 +42,29 @@ export default function Home() {
         `)
         .neq('User-ID', session?.user?.id)
         .order('created_at', { ascending: false })
+        .range(from, to)
 
       if (profilesError) throw profilesError
 
-      // Initialize image indexes
-      const indexes = profilesData?.reduce((acc, profile) => ({
+      console.log(`Loaded ${profilesData?.length} profiles`)
+      
+      // Check if we have more profiles to load
+      setHasMore(profilesData?.length === PROFILES_PER_PAGE)
+
+      // Initialize image indexes for new profiles
+      const newIndexes = profilesData?.reduce((acc, profile) => ({
         ...acc,
         [profile['P-ID']]: 0
       }), {})
       
-      setCurrentImageIndexes(indexes || {})
-      setProfiles(profilesData || [])
+      setCurrentImageIndexes(prev => ({ ...prev, ...newIndexes }))
+      
+      // Append new profiles to existing ones
+      setProfiles(prev => 
+        pageNumber === 0 
+          ? (profilesData || [])
+          : [...prev, ...(profilesData || [])]
+      )
     } catch (e) {
       console.error('Error loading profiles:', e)
       setError('Failed to load profiles')
@@ -54,6 +73,16 @@ export default function Home() {
     }
   }
 
+  // Handle reaching end of list
+  const handleEndReached = () => {
+    if (!hasMore || loading) return
+    
+    const nextPage = page + 1
+    setPage(nextPage)
+    loadProfiles(nextPage)
+  }
+
+  // Handle image cycling
   const handleImagePress = (profileId: string, imagesLength: number) => {
     setCurrentImageIndexes(prev => ({
       ...prev,
@@ -61,98 +90,54 @@ export default function Home() {
     }))
   }
 
-  const renderProfile = ({ item: profile }: { item: Profile }) => {
-    const currentImageIndex = currentImageIndexes[profile['P-ID']] || 0
-    const hasMultipleImages = profile.images && profile.images.length > 1
-
-    return (
-      <View style={styles.profileCard}>
-        {profile.images && profile.images.length > 0 && (
-          <TouchableOpacity
-            activeOpacity={0.9}
-            onPress={() => handleImagePress(profile['P-ID'], profile.images.length)}
-            disabled={!hasMultipleImages}
-            style={styles.imageContainer}
-          >
-            <Image 
-              source={{ uri: profile.images[currentImageIndex].url }} 
-              style={styles.profileImage}
-            />
-            {hasMultipleImages && (
-              <View style={styles.imageIndicators}>
-                {profile.images.map((_, index) => (
-                  <View 
-                    key={index} 
-                    style={[
-                      styles.imageIndicator,
-                      index === currentImageIndex && styles.imageIndicatorActive
-                    ]} 
-                  />
-                ))}
-              </View>
-            )}
-          </TouchableOpacity>
-        )}
-        
-        <View style={styles.profileInfo}>
-          <View style={styles.nameContainer}>
-            <Text style={styles.name}>{profile.name}</Text>
-            <Text style={styles.major}>{profile.major}</Text>
-          </View>
-          
-          <View style={styles.tagsContainer}>
-            {profile.tags.map((tag, index) => (
-              <View key={index} style={styles.tag}>
-                <Text style={styles.tagText}>{tag}</Text>
-              </View>
-            ))}
-          </View>
-
-          <Text style={styles.bio} numberOfLines={3}>
-            {profile.description}
-          </Text>
-        </View>
-      </View>
-    )
+  const handleRetry = () => {
+    setPage(0)
+    loadProfiles(0)
   }
 
-  if (loading) {
-    return (
-      <View style={styles.container}>
-        <Text>Loading profiles...</Text>
-      </View>
-    )
+  const renderProfile = ({ item: profile }: { item: Profile }) => (
+    <ProfileCard
+      profile={profile}
+      currentImageIndex={currentImageIndexes[profile['P-ID']] || 0}
+      onImagePress={handleImagePress}
+    />
+  )
+
+  // Handle viewability changes
+  const onViewableItemsChanged = useCallback(({ viewableItems }: { 
+    viewableItems: ViewToken[]
+  }) => {
+    if (viewableItems.length > 0) {
+      console.log('Currently viewing profile:', viewableItems[0].item['P-ID'])
+    }
+  }, [])
+
+  if (loading && profiles.length === 0) {
+    return <LoadingView />
   }
 
   if (error) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.error}>{error}</Text>
-        <TouchableOpacity onPress={loadProfiles}>
-          <Text>Retry</Text>
-        </TouchableOpacity>
-      </View>
-    )
+    return <ErrorView error={error} onRetry={handleRetry} />
   }
 
   return (
     <SafeAreaWrapper>
       <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.headerText}>avanti</Text>
-        </View>
-        
-        {profiles.length > 0 && (
-          <View style={styles.profileContainer}>
-            {renderProfile({ item: profiles[0] })}
-          </View>
-        )}
+        <FlatList
+          data={profiles}
+          renderItem={renderProfile}
+          keyExtractor={(item) => item['P-ID']}
+          showsVerticalScrollIndicator={false}
+          snapToInterval={SCREEN_HEIGHT}
+          decelerationRate="fast"
+          onEndReached={handleEndReached}
+          onEndReachedThreshold={0.5}
+        />
       </View>
     </SafeAreaWrapper>
   )
 }
 
-const { height } = Dimensions.get('window')
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -170,78 +155,8 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#000',
   },
-  profileContainer: {
-    flex: 1,
-    padding: 10,
-  },
-  profileCard: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  imageContainer: {
-    flex: 0.7,
-    width: '100%',
-    backgroundColor: '#f0f0f0',
-  },
-  profileImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  imageIndicators: {
-    position: 'absolute',
-    top: 12,
-    width: '100%',
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 4,
-  },
-  imageIndicator: {
-    width: 40,
-    height: 3,
-    borderRadius: 2,
-    backgroundColor: 'rgba(255,255,255,0.4)',
-  },
-  imageIndicatorActive: {
-    backgroundColor: '#fff',
-  },
-  profileInfo: {
-    flex: 0.3,
-    padding: 20,
-  },
-  nameContainer: {
-    marginBottom: 12,
-  },
-  name: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    color: '#000',
-  },
-  major: {
-    fontSize: 18,
-    color: '#666',
-    marginTop: 4,
-  },
-  tagsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 16,
-  },
-  tag: {
-    backgroundColor: '#f0f0f0',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  tagText: {
-    fontSize: 14,
-    color: '#666',
-  },
-  bio: {
-    fontSize: 16,
-    color: '#333',
-    lineHeight: 24,
+  listContent: {
+    flexGrow: 1,
   },
   error: {
     color: 'red',
