@@ -1,9 +1,15 @@
-import { View, StyleSheet, Platform } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { View, StyleSheet } from 'react-native'
+import { SafeAreaView, Edge } from 'react-native-safe-area-context'
 
-export function SafeAreaWrapper({ children }: { children: React.ReactNode }) {
+type Props = {
+  children: React.ReactNode
+  style?: object
+  edges?: Edge[]  // Allow customizing which edges to protect
+}
+
+export function SafeAreaWrapper({ children, style, edges = ['top'] }: Props) {
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, style]} edges={edges}>
       <View style={styles.content}>
         {children}
       </View>

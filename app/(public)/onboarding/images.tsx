@@ -8,16 +8,18 @@ import { useAuth } from '../../../lib/context/auth'
 import { OnboardingLayout } from '../../../components/OnboardingLayout'
 import { onboardingStyles as styles } from '../../../lib/styles/onboarding'
 import { decode } from 'base64-arraybuffer'
-const TOTAL_STEPS = 4
-const CURRENT_STEP = 4
-const MIN_IMAGES = 2
-const MAX_IMAGES = 6
+import { uploadImage } from '../../../lib/utils/imageUpload'
+import { IMAGE_LIMITS } from '../../../lib/utils/constants'
 
 type ImageInfo = {
   uri: string
   fileName: string | null
   type: string | null
 }
+
+const TOTAL_STEPS = 4
+const CURRENT_STEP = 4
+
 
 async function uriToBase64(uri: string): Promise<string> {
   const response = await fetch(uri)
@@ -41,8 +43,8 @@ export default function OnboardingImages() {
   const [error, setError] = useState<string | null>(null)
 
   const pickImage = async () => {
-    if (images.length >= MAX_IMAGES) {
-      setError(`Maximum ${MAX_IMAGES} images allowed`)
+    if (images.length >= IMAGE_LIMITS.MAX_IMAGES) {
+      setError(`Maximum ${IMAGE_LIMITS.MAX_IMAGES} images allowed`)
       return
     }
 
@@ -79,8 +81,8 @@ export default function OnboardingImages() {
   }
 
   const handleComplete = async () => {
-    if (images.length < MIN_IMAGES) {
-      setError(`Please select at least ${MIN_IMAGES} images`)
+    if (images.length < IMAGE_LIMITS.MIN_IMAGES) {
+      setError(`Please select at least ${IMAGE_LIMITS.MIN_IMAGES} images`)
       return
     }
 
@@ -119,43 +121,13 @@ export default function OnboardingImages() {
       // Upload images and create entries
       for (const image of images) {
         try {
-          const fileName = `${session.user.id}/${Date.now()}.jpg`
-          console.log('Uploading image:', fileName)
-          
-          const base64 = await uriToBase64(image.uri)
-          console.log('Converting to base64 successful')
-
-          // Upload to storage bucket
-          const { error: uploadError, data } = await supabase.storage
-            .from('profile-images')
-            .upload(fileName, decode(base64), {
-              contentType: 'image/jpeg',
-              cacheControl: '3600'
-            })
-
-          if (uploadError) {
-            console.error('Upload error:', uploadError)
-            continue
-          }
-
-          // Get the public URL
-          const { data: { publicUrl } } = supabase.storage
-            .from('profile-images')
-            .getPublicUrl(fileName)
-
-          // Create database entry
-          const { error: imageError } = await supabase
-            .from('Images')
-            .insert([{
-              'P-ID': profileId,
-              'url': publicUrl
-            }])
-
-          if (imageError) {
-            console.error('Image entry error:', imageError)
-          }
-        } catch (imageError) {
-          console.error('Image processing error:', imageError)
+          await uploadImage({
+            base64Image: await uriToBase64(image.uri),
+            userId: session.user.id,
+            profileId: profileId
+          })
+        } catch (error) {
+          console.error('Error uploading image:', error)
           // Continue with other images
         }
       }
@@ -187,13 +159,13 @@ export default function OnboardingImages() {
       title="Add some photos"
       error={error}
       buttonText="Complete"
-      buttonDisabled={images.length < MIN_IMAGES || loading}
+      buttonDisabled={images.length < IMAGE_LIMITS.MIN_IMAGES || loading}
       onButtonPress={handleComplete}
       loading={loading}
     >
       <ScrollView style={localStyles.container}>
         <Text style={localStyles.subtitle}>
-          Add at least {MIN_IMAGES} photos to continue
+          Add at least {IMAGE_LIMITS.MIN_IMAGES} photos to continue
         </Text>
         
         <View style={localStyles.imageGrid}>
@@ -209,7 +181,7 @@ export default function OnboardingImages() {
             </View>
           ))}
           
-          {images.length < MAX_IMAGES && (
+          {images.length < IMAGE_LIMITS.MAX_IMAGES && (
             <TouchableOpacity 
               style={localStyles.addButton}
               onPress={pickImage}

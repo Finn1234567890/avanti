@@ -1,5 +1,5 @@
 import React from 'react'
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, Alert } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, Alert, RefreshControl } from 'react-native'
 import { useState, useEffect } from 'react'
 import { useAuth } from '../../../lib/context/auth'
 import { supabase } from '../../../lib/supabase/supabase'
@@ -25,6 +25,7 @@ export default function Friends() {
   const [activeTab, setActiveTab] = useState<TabType>('friends')
   const [friendships, setFriendships] = useState<FriendshipWithProfile[]>([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
 
   useEffect(() => {
     loadFriendships()
@@ -181,6 +182,13 @@ export default function Friends() {
     }
   })
 
+  const onRefresh = React.useCallback(async () => {
+    setRefreshing(true)
+    setFriendships([]) // Clear existing friendships before reload
+    await loadFriendships()
+    setRefreshing(false)
+  }, [])
+
   return (
     <SafeAreaWrapper>
       <View style={styles.container}>
@@ -210,6 +218,15 @@ export default function Friends() {
           renderItem={renderFriendItem}
           keyExtractor={item => item['friendship-id']}
           contentContainerStyle={styles.list}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#007AFF"
+              colors={["#007AFF"]} // Android
+              progressBackgroundColor="#ffffff" // Android
+            />
+          }
           ListEmptyComponent={
             <Text style={styles.emptyText}>
               {loading ? 'Loading...' : 'No requests found'}

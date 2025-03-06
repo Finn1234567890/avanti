@@ -84,7 +84,7 @@ export function ProfileCard({ profile, currentImageIndex, onImagePress }: Profil
           style={styles.imageContainer}
         >
           <Image 
-            source={{ uri: profile.images[currentImageIndex].url }} 
+            source={{ uri: profile.images[currentImageIndex].url }}
             style={styles.profileImage}
           />
           {hasMultipleImages && (

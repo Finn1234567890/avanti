@@ -29,11 +29,12 @@ export default function Home() {
   }, [])
 
   const loadProfiles = async (pageNumber = 0) => {
+    setLoading(true)
     try {
-      console.log('Loading profiles for page:', pageNumber)
       const from = pageNumber * PROFILES_PER_PAGE
       const to = from + PROFILES_PER_PAGE - 1
 
+      // First, fetch profile data with image URLs
       const { data: profilesData, error: profilesError } = await supabase
         .from('Profile')
         .select(`
@@ -46,25 +47,38 @@ export default function Home() {
 
       if (profilesError) throw profilesError
 
-      console.log(`Loaded ${profilesData?.length} profiles`)
-      
-      // Check if we have more profiles to load
-      setHasMore(profilesData?.length === PROFILES_PER_PAGE)
+      // Get public URLs for all images
+      const profilesWithPublicUrls = await Promise.all(
+        profilesData.map(async (profile) => ({
+          ...profile,
+          images: await Promise.all(
+            profile.images.map(async (img: { url: string }) => {
+              const { data: publicUrl } = supabase.storage
+                .from('public-images')
+                .getPublicUrl(img.url)
+              return {
+                ...img,
+                publicUrl: publicUrl.publicUrl
+              }
+            })
+          )
+        }))
+      )
 
-      // Initialize image indexes for new profiles
-      const newIndexes = profilesData?.reduce((acc, profile) => ({
+      setHasMore(profilesData?.length === PROFILES_PER_PAGE)
+      
+      const newIndexes = profilesWithPublicUrls?.reduce((acc, profile) => ({
         ...acc,
         [profile['P-ID']]: 0
       }), {})
       
       setCurrentImageIndexes(prev => ({ ...prev, ...newIndexes }))
       
-      // Append new profiles to existing ones
-      setProfiles(prev => 
-        pageNumber === 0 
-          ? (profilesData || [])
-          : [...prev, ...(profilesData || [])]
-      )
+      if (pageNumber === 0) {
+        setProfiles(profilesWithPublicUrls || [])
+      } else {
+        setProfiles(prev => [...prev, ...(profilesWithPublicUrls || [])])
+      }
     } catch (e) {
       console.error('Error loading profiles:', e)
       setError('Failed to load profiles')

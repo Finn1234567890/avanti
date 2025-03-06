@@ -4,15 +4,12 @@ import { router } from 'expo-router'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { OnboardingLayout } from '../../../components/OnboardingLayout'
 import { onboardingStyles as styles } from '../../../lib/styles/onboarding'
+import { INTERESTS } from '../../../lib/utils/constants'
 
 const TOTAL_STEPS = 4
 const CURRENT_STEP = 3
 
-const AVAILABLE_TAGS = [
-  'Reading', 'Writing', 'Sports', 'Music', 'Art',
-  'Technology', 'Travel', 'Food', 'Fashion', 'Movies',
-  'Gaming', 'Photography', 'Dance', 'Fitness', 'Nature'
-]
+
 
 export default function OnboardingInterests() {
   const [selectedTags, setSelectedTags] = useState<string[]>([])
@@ -54,7 +51,7 @@ export default function OnboardingInterests() {
     >
       <ScrollView style={localStyles.tagsContainer}>
         <View style={localStyles.tagsGrid}>
-          {AVAILABLE_TAGS.map(tag => (
+          {INTERESTS.map(tag => (
             <TouchableOpacity
               key={tag}
               style={[
