@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, FlatList, ViewToken, Dimensions, Platform } from 'react-native'
+import { View, Text, StyleSheet, FlatList, ViewToken, Dimensions, Platform, RefreshControl } from 'react-native'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from '../../../lib/context/auth'
 import { supabase } from '../../../lib/supabase/supabase'
@@ -7,6 +7,7 @@ import { ProfileCard } from './components/ProfileCard'
 import { Profile } from './types'
 import { LoadingView } from './components/LoadingView'
 import { ErrorView } from './components/ErrorView'
+import * as Haptics from 'expo-haptics'
 
 const PROFILES_PER_PAGE = 5
 const { height: SCREEN_HEIGHT } = Dimensions.get('window')
@@ -23,6 +24,7 @@ export default function Home() {
   const viewabilityConfig = useRef({
     itemVisiblePercentThreshold: 50
   })
+  const [refreshing, setRefreshing] = useState(false)
 
   useEffect(() => {
     loadProfiles()
@@ -122,8 +124,18 @@ export default function Home() {
     viewableItems: ViewToken[]
   }) => {
     if (viewableItems.length > 0) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
       console.log('Currently viewing profile:', viewableItems[0].item['P-ID'])
     }
+  }, [])
+
+  const onRefresh = useCallback(async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+    setRefreshing(true)
+    setProfiles([])  // Clear existing profiles
+    await loadProfiles(0)  // Reload from first page
+    setPage(0)  // Reset page counter
+    setRefreshing(false)
   }, [])
 
   if (loading && profiles.length === 0) {
@@ -146,6 +158,15 @@ export default function Home() {
           decelerationRate="fast"
           onEndReached={handleEndReached}
           onEndReachedThreshold={0.5}
+          onViewableItemsChanged={onViewableItemsChanged}
+          viewabilityConfig={viewabilityConfig.current}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#007AFF"
+            />
+          }
         />
       </View>
     </SafeAreaWrapper>

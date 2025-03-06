@@ -1,5 +1,6 @@
 import React from 'react'
 import { View, StyleSheet, Image, TouchableOpacity, Text } from 'react-native'
+import * as Haptics from 'expo-haptics'
 
 type Props = {
   images: { url: string, publicUrl: string }[]
@@ -18,6 +19,16 @@ export function ImageGrid({
 }: Props) {
   if (!images) return null
 
+  const handleDelete = async (url: string) => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+    onDelete(url)
+  }
+
+  const handleAdd = async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+    onAdd()
+  }
+
   return (
     <View style={styles.container}>
       {images.map((item) => (
@@ -28,14 +39,14 @@ export function ImageGrid({
           />
           <TouchableOpacity
             style={styles.deleteButton}
-            onPress={() => images.length > minItems && onDelete(item.url)}
+            onPress={() => images.length > minItems && handleDelete(item.url)}
           >
             <Text style={styles.deleteButtonText}>×</Text>
           </TouchableOpacity>
         </View>
       ))}
       {images.length < maxItems && (
-        <TouchableOpacity style={styles.addButton} onPress={onAdd}>
+        <TouchableOpacity style={styles.addButton} onPress={handleAdd}>
           <Text style={styles.addButtonText}>+</Text>
         </TouchableOpacity>
       )}

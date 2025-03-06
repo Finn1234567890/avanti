@@ -1,24 +1,26 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { View, Text, StyleSheet, TouchableOpacity, FlatList, Alert, RefreshControl } from 'react-native'
-import { useState, useEffect } from 'react'
+import { SafeAreaWrapper } from '../../../components/SafeAreaWrapper'
 import { useAuth } from '../../../lib/context/auth'
 import { supabase } from '../../../lib/supabase/supabase'
-import { SafeAreaWrapper } from '../../../components/SafeAreaWrapper'
+import * as Haptics from 'expo-haptics'
 
-type FriendshipWithProfile = {
+type TabType = 'incoming' | 'outgoing' | 'friends'
+
+export type FriendshipWithProfile = {
   'friendship-id': string
   status: string
   'requester-ID': string
   'receiver-ID': string
   requester: {
     name: string
+    phone?: string
   }
   receiver: {
     name: string
+    phone?: string
   }
 }
-
-type TabType = 'incoming' | 'outgoing' | 'friends'
 
 export default function Friends() {
   const { session } = useAuth()
@@ -56,33 +58,49 @@ export default function Friends() {
         const receiverId = friendship['receiver-ID']
         
         const {data: requesterName, error: requesterNameError} = await supabase
-        .from('Profile')
-        .select('name')
-        .eq('User-ID', requesterId)
-        .single()
+          .from('Profile')
+          .select('name')
+          .eq('User-ID', requesterId)
+          .single()
 
-      if(requesterNameError) throw requesterNameError
+        if(requesterNameError) throw requesterNameError
 
-      const {data: receiverName, error: receiverNameError} = await supabase
-        .from('Profile')
-        .select('name')
-        .eq('User-ID', receiverId)
-        .single()
+        const {data: receiverName, error: receiverNameError} = await supabase
+          .from('Profile')
+          .select('name')
+          .eq('User-ID', receiverId)
+          .single()
         
         if(receiverNameError) throw receiverNameError
         
-        if(requesterName && receiverName) {
-        const friendshipData: FriendshipWithProfile = {
-          'friendship-id': data[0]['friendship-id'],
-          status: data[0]!.status,
-          'requester-ID': data[0]['requester-ID'],
-          'receiver-ID': data[0]['receiver-ID'],
-          requester: {name: requesterName.name},
-          receiver: {name: receiverName.name}
+        let friendPhone = null
+        if (friendship.status === 'accepted') {
+          const friendId = session.user.id === requesterId ? receiverId : requesterId
+          const { data: phoneNumber } = await supabase.rpc('get_friend_phone_number', {
+            friend_id: friendId
+          })
+          friendPhone = phoneNumber
         }
+        
+        if(requesterName && receiverName) {
+          const friendshipData: FriendshipWithProfile = {
+            'friendship-id': data[0]['friendship-id'],
+            status: data[0]!.status,
+            'requester-ID': data[0]['requester-ID'],
+            'receiver-ID': data[0]['receiver-ID'],
+            requester: {
+              name: requesterName.name,
+              phone: session.user.id === receiverId ? friendPhone : undefined
+            },
+            receiver: {
+              name: receiverName.name,
+              phone: session.user.id === requesterId ? friendPhone : undefined
+            }
+          }
 
-        setFriendships(friendships => [...friendships, friendshipData])
-      }})
+          setFriendships(friendships => [...friendships, friendshipData])
+        }
+      })
       
 
     } catch (error) {
@@ -94,6 +112,9 @@ export default function Friends() {
   }
 
   const handleAccept = async (friendshipId: string) => {
+    await Haptics.notificationAsync(
+      Haptics.NotificationFeedbackType.Success
+    )
     try {
       const { error } = await supabase
         .from('Friendships')
@@ -109,6 +130,7 @@ export default function Friends() {
   }
 
   const handleDecline = async (friendshipId: string) => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
     try {
       const { error } = await supabase
         .from('Friendships')
@@ -123,6 +145,29 @@ export default function Friends() {
     }
   }
 
+  const handleInvite = () => {
+    // Implementation of handleInvite function
+  }
+
+  const filteredFriendships = friendships.filter(friendship => {
+    switch (activeTab) {
+      case 'incoming':
+        return friendship.status === 'pending' && friendship['receiver-ID'] === session?.user?.id
+      case 'outgoing':
+        return friendship.status === 'pending' && friendship['requester-ID'] === session?.user?.id
+      case 'friends':
+        return friendship.status === 'accepted'
+    }
+  })
+
+  const onRefresh = React.useCallback(async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+    setRefreshing(true)
+    setFriendships([]) 
+    await loadFriendships()
+    setRefreshing(false)
+  }, [])
+
   const renderFriendItem = ({ item }: { item: FriendshipWithProfile }) => {
     const isRequester = item['requester-ID'] === session?.user?.id
     const profile = isRequester ? item.receiver : item.requester
@@ -131,6 +176,9 @@ export default function Friends() {
       <View style={styles.friendItem}>
         <View style={styles.friendInfo}>
           <Text style={styles.name}>{profile.name}</Text>
+          {item.status === 'accepted' && profile.phone && (
+            <Text style={styles.phone}>{profile.phone}</Text>
+          )}
           {item.status === 'pending' && (
             <View style={styles.actionButtons}>
               {!isRequester ? (
@@ -171,24 +219,6 @@ export default function Friends() {
     )
   }
 
-  const filteredFriendships = friendships.filter(friendship => {
-    switch (activeTab) {
-      case 'incoming':
-        return friendship.status === 'pending' && friendship['receiver-ID'] === session?.user?.id
-      case 'outgoing':
-        return friendship.status === 'pending' && friendship['requester-ID'] === session?.user?.id
-      case 'friends':
-        return friendship.status === 'accepted'
-    }
-  })
-
-  const onRefresh = React.useCallback(async () => {
-    setRefreshing(true)
-    setFriendships([]) // Clear existing friendships before reload
-    await loadFriendships()
-    setRefreshing(false)
-  }, [])
-
   return (
     <SafeAreaWrapper>
       <View style={styles.container}>
@@ -223,8 +253,6 @@ export default function Friends() {
               refreshing={refreshing}
               onRefresh={onRefresh}
               tintColor="#007AFF"
-              colors={["#007AFF"]} // Android
-              progressBackgroundColor="#ffffff" // Android
             />
           }
           ListEmptyComponent={
@@ -307,5 +335,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#666',
     marginTop: 24,
+  },
+  phone: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 8,
   },
 }) 

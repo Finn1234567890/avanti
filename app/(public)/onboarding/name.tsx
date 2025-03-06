@@ -12,6 +12,7 @@ export default function OnboardingName() {
   const [name, setName] = useState('')
   const [error, setError] = useState<string | null>(null)
 
+
   const handleNext = async () => {
     if (!name.trim()) {
       setError('Name is required')

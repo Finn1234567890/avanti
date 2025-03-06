@@ -42,6 +42,7 @@ export default function OnboardingImages() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+
   const pickImage = async () => {
     if (images.length >= IMAGE_LIMITS.MAX_IMAGES) {
       setError(`Maximum ${IMAGE_LIMITS.MAX_IMAGES} images allowed`)
@@ -108,12 +109,15 @@ export default function OnboardingImages() {
           'name': name,
           'major': major,
           'tags': interests,
-          'description': bio
+          'description': bio,
+          'phone_number': session.user.phone
         }])
         .select()
         .single()
 
       const profileId = profileData['P-ID']
+
+      if(profileData) console.log("successful profile creation")
 
       if (profileError) throw profileError
       if (!profileData) throw new Error('Failed to create profile')

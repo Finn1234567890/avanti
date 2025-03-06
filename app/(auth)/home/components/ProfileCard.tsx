@@ -4,6 +4,7 @@ import { ImageIndicators } from './ImageIndicators'
 import { supabase } from '../../../../lib/supabase/supabase'
 import { useAuth } from '../../../../lib/context/auth'
 import { useState, useEffect } from 'react'
+import * as Haptics from 'expo-haptics'
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window')
 
@@ -53,6 +54,9 @@ export function ProfileCard({ profile, currentImageIndex, onImagePress }: Profil
 
   const handleConnect = async () => {
     try {
+      await Haptics.notificationAsync(
+        Haptics.NotificationFeedbackType.Success
+      )
       if (!session?.user?.id) return
 
       const { error } = await supabase
@@ -69,9 +73,17 @@ export function ProfileCard({ profile, currentImageIndex, onImagePress }: Profil
 
       Alert.alert('Success', 'Connection request sent!')
     } catch (error) {
+      await Haptics.notificationAsync(
+        Haptics.NotificationFeedbackType.Error
+      )
       console.error('Error sending connection request:', error)
       Alert.alert('Error', 'Failed to send connection request')
     }
+  }
+
+  const handleImageTap = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+    onImagePress(profile['P-ID'], profile.images.length)
   }
 
   return (
@@ -79,7 +91,7 @@ export function ProfileCard({ profile, currentImageIndex, onImagePress }: Profil
       {profile.images && profile.images.length > 0 && (
         <TouchableOpacity
           activeOpacity={0.9}
-          onPress={() => onImagePress(profile['P-ID'], profile.images.length)}
+          onPress={handleImageTap}
           disabled={!hasMultipleImages}
           style={styles.imageContainer}
         >

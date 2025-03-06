@@ -10,6 +10,9 @@ export type AuthContextType = {
   loading: boolean
   hasProfile: boolean
   refreshProfile: () => Promise<void>
+  signUp: (password: string, phone: string) => Promise<{ error: Error | null }>
+  sendVerificationCode: (phone: string) => Promise<{ error: Error | null }>
+  verifyPhone: (phone: string, code: string) => Promise<{ error: Error | null }>
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -18,6 +21,9 @@ const AuthContext = createContext<AuthContextType>({
   hasProfile: false,
   refreshProfile: async () => {},
   signOut: async () => {},
+  sendVerificationCode: async () => ({ error: null }),
+  verifyPhone: async () => ({ error: null }),
+  signUp: async () => ({ error: null }),
 })
 
 function useProtectedRoute(session: Session | null, hasProfile: boolean, loading: boolean) {
@@ -123,6 +129,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useProtectedRoute(session, hasProfile, loading)
 
+  const sendVerificationCode = async (phone: string) => {
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        phone,
+        options: {
+          shouldCreateUser: true,
+          channel: 'sms'
+        }
+      })
+      return { error }
+    } catch (error) {
+      return { error: error as Error }
+    }
+  }
+
+  const verifyPhone = async (phone: string, code: string) => {
+    try {
+      const { error } = await supabase.auth.verifyOtp({
+        phone,
+        token: code,
+        type: 'sms'
+      })
+      return { error }
+    } catch (error) {
+      return { error: error as Error }
+    }
+  }
+
+  const value = {
+    session,
+    loading,
+    hasProfile,
+    refreshProfile,
+    signOut: async () => {},
+    sendVerificationCode,
+    verifyPhone,
+    signUp: async () => ({ error: null }),
+    verifyAndSignUp: async () => ({ error: null }),
+  }
+
   if (initializing) {
     return (
       <View style={styles.loadingContainer}>
@@ -132,7 +178,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ session, loading, hasProfile, refreshProfile, signOut: async () => {} }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   )

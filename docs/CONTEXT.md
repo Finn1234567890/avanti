@@ -1,5 +1,60 @@
 # Pflichtenheft
 
+# TODO
+
+## High Priority
+1. Fix Page Data Loading
+   - Implement proper loading states
+   - Avoid unnecessary reloads
+   - Add pull-to-refresh where appropriate DONE
+   - Optimize data fetching strategies
+
+2. Fix Profile Page Editing
+   - Improve real-time updates
+   - Add proper validation
+   - Fix image reordering functionality
+   - Optimize debounced saves
+   - Add loading indicators during saves
+
+3. Fix Navigation Bar
+   - Improve styling and layout
+   - Add active state indicators
+   - Fix navigation transitions
+   - Add badges for notifications/pending requests
+   - Ensure consistent behavior across app
+   - Rearrange navigation items for better UX
+   - Fix components appearing as navigation items
+
+4. Phone Number Implementation
+   - Add phone number field to registration
+   - Implement phone number validation
+   - Set up SMS verification system
+   - Handle international phone numbers
+   - Add phone number update functionality
+
+5. Phone Verification Flow
+   - Implement SMS code sending
+   - Add verification code input UI
+   - Handle verification timeouts
+   - Add resend code functionality
+   - Implement security measures
+
+6. Styling Improvements
+   - Create consistent design system
+   - Implement dark mode support
+   - Add proper animations and transitions
+   - Improve accessibility
+   - Make UI more responsive
+   - Add loading skeletons
+   - Polish visual feedback
+
+## Future Improvements
+- Add proper error boundaries
+- Implement caching strategy
+- Add offline support
+- Optimize image loading and caching
+- Add proper TypeScript types for all components 
+
 ## Architecture & Tech Stack
 - Frontend: Expo with TypeScript using Expo Router
 - Backend: Node.js using TypeScript
