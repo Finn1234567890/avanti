@@ -4,6 +4,9 @@ import { SafeAreaWrapper } from '../../../components/SafeAreaWrapper'
 import { useAuth } from '../../../lib/context/auth'
 import { supabase } from '../../../lib/supabase/supabase'
 import * as Haptics from 'expo-haptics'
+import { openMessaging } from '../../../lib/utils/messaging'
+import * as Clipboard from 'expo-clipboard'
+import { Ionicons } from '@expo/vector-icons'
 
 type TabType = 'incoming' | 'outgoing' | 'friends'
 
@@ -153,8 +156,15 @@ export default function Friends() {
     }
   }
 
-  const handleInvite = () => {
-    // Implementation of handleInvite function
+  const handleMessage = async (profile: FriendshipWithProfile, platform: string) => {
+    if (!profile.displayedPhone) return
+    try {
+      const messageBy = session?.user?.id === profile['requester-ID'] ? profile.requester.name : profile.receiver.name
+      await openMessaging(platform, profile.displayedPhone, messageBy)
+    } catch (error) {
+      console.error('Error opening messaging:', error)
+      Alert.alert('Error', 'Could not open messaging')
+    }
   }
 
   const filteredFriendships = friendships.filter(friendship => {
@@ -180,12 +190,27 @@ export default function Friends() {
     const isRequester = item['requester-ID'] === session?.user?.id
     const profile = isRequester ? item.receiver : item.requester
 
+    const handleCopyNumber = async () => {
+      if (!item.displayedPhone) return
+      await Clipboard.setStringAsync(item.displayedPhone)
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+      Alert.alert('Copied!', 'Phone number copied to clipboard')
+    }
+
     return (
       <View style={styles.friendItem}>
         <View style={styles.friendInfo}>
           <Text style={styles.name}>{profile.name}</Text>
           {item.status === 'accepted' && item.displayedPhone && (
-            <Text style={styles.phone}>{item.displayedPhone}</Text>
+            <View style={styles.phoneContainer}>
+              <Text style={styles.phone}>{item.displayedPhone}</Text>
+              <TouchableOpacity 
+                onPress={handleCopyNumber}
+                style={styles.copyButton}
+              >
+                <Ionicons name="copy-outline" size={18} color="#666" />
+              </TouchableOpacity>
+            </View>
           )}
           {item.status === 'pending' && (
             <View style={styles.actionButtons}>
@@ -221,6 +246,22 @@ export default function Friends() {
             >
               <Text style={styles.buttonText}>Unfriend</Text>
             </TouchableOpacity>
+          )}
+          {item.status === 'accepted' && (
+            <View>
+              <TouchableOpacity
+                style={styles.messageButton}
+                onPress={() => handleMessage(item, 'whatsapp')}
+              >
+                <Text style={styles.messageButtonText}>Message WhatsApp</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.messageButton}
+                onPress={() => handleMessage(item, 'sms')}
+              >
+                <Text style={styles.messageButtonText}>Message SMS</Text>
+              </TouchableOpacity>
+            </View>
           )}
         </View>
       </View>
@@ -344,9 +385,29 @@ const styles = StyleSheet.create({
     color: '#666',
     marginTop: 24,
   },
+  phoneContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
   phone: {
     fontSize: 14,
     color: '#666',
-    marginBottom: 8,
+  },
+  copyButton: {
+    padding: 4,
+    marginLeft: 8,
+  },
+  messageButton: {
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    marginLeft: 8,
+  },
+  messageButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '500',
   },
 }) 
