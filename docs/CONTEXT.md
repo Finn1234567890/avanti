@@ -369,3 +369,13 @@ assets/                   # Static assets
 3. Lower costs (no SMS for auth)
 4. Better privacy control
 5. Still maintains phone number sharing functionality
+
+## Theme
+
+The app uses a consistent color palette defined in `lib/theme/colors.ts`:
+
+- Primary: White (#FFFFFF)
+- Primary Accent: Mint Green (#89DFC2) 
+- Secondary Accent: Hot Pink (#FF69B4)
+
+These colors are used throughout the app to maintain visual consistency. Import them from the theme file rather than hardcoding color values.

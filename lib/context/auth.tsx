@@ -24,35 +24,63 @@ const AuthContext = createContext<AuthContextType>({
   signIn: async () => ({ error: null }),
 })
 
+const checkPhoneNumber = async (userId: string) => {
+  const { data, error } = await supabase
+    .from('PhoneNumbers')
+    .select('*')
+    .eq('User-ID', userId)
+    .single()
+  
+  console.log('Phone check result:', { data, error })
+  return data
+}
+
 function useProtectedRoute(session: Session | null, hasProfile: boolean, loading: boolean) {
-  const segments = useSegments()
+  const segments = useSegments() as string[]
 
   useEffect(() => {
-    if (loading) return
+    const checkRouting = async () => {
+      if (loading) return
 
-    const isPublicGroup = segments[0] === '(public)'
-    const isAuthGroup = segments[0] === '(auth)'
+      const isPublicGroup = segments[0] === '(public)'
+      const isAuthGroup = segments[0] === '(auth)'
+      const isOnboarding = segments.includes('onboarding')
 
-    if (!session) {
-      // Not logged in - only allow public routes
-      if (isAuthGroup) {
-        router.replace('/(public)/register')
+      console.log('Routing check:', { session, hasProfile, isPublicGroup, isAuthGroup, isOnboarding })
+
+      if (!session) {
+        console.log('No session found')
+        if (isAuthGroup) {
+          router.replace('/(public)/welcome')
+        }
+        return
       }
-      return
-    }
 
-    if (!hasProfile) {
-      // Logged in but no profile - must complete onboarding
-      if (isAuthGroup) {
-        router.replace('/(public)/onboarding/phone')
+      // Don't interrupt onboarding flow once it's started
+      if (isOnboarding && segments.length > 1 && segments[1] !== 'phone') {
+        return
       }
-      return
+
+      // Check profile and phone status only when not in onboarding
+      if (!hasProfile) {
+        console.log('No profile found, checking phone status')
+        const phoneData = await checkPhoneNumber(session.user.id)
+        if (phoneData) {
+          router.replace('/(public)/onboarding/')
+        } else {
+          router.replace('/(public)/phone')
+        }
+        return
+      }
+
+      // User has completed onboarding
+      if (isPublicGroup && !isOnboarding) {
+        console.log('Profile complete, redirecting to home')
+        router.replace('/(auth)/home')
+      }
     }
 
-    // Logged in with profile - should be in auth routes
-    if (isPublicGroup) {
-      router.replace('/(auth)/home')
-    }
+    checkRouting()
   }, [session, hasProfile, segments, loading])
 }
 
@@ -93,6 +121,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const initializeAuth = async () => {
       try {
         const { data: { session: initialSession } } = await supabase.auth.getSession()
+        console.log('Initial session check:', initialSession)
         setSession(initialSession)
         
         if (initialSession?.user) {

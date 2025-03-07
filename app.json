@@ -6,6 +6,7 @@
     ],
     "name": "avanti-app",
     "slug": "avanti-app",
-    "newArchEnabled": true
+    "newArchEnabled": true,
+    "orientation": "portrait"
   }
 }

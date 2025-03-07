@@ -1,15 +1,12 @@
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native'
 import { useState } from 'react'
-import { router } from 'expo-router'
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import { OnboardingScreenLayout } from '../../../components/OnboardingScreenLayout'
-import { colors } from '../../../lib/theme/colors'
-import { TOTAL_STEPS } from '../../../lib/utils/onboarding'
-import { INTERESTS } from '../../../lib/utils/constants'
+import { OnboardingStepProps } from '../../lib/types/onboarding'
+import { OnboardingScreenLayout } from '../OnboardingScreenLayout'
+import { colors } from '../../lib/theme/colors'
+import { INTERESTS } from '../../lib/utils/constants'
 
-const CURRENT_STEP = 4
-
-export default function Interests() {
+export function InterestsStep({ onNext, onBack }: OnboardingStepProps) {
   const [interests, setInterests] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -33,7 +30,7 @@ export default function Interests() {
 
     try {
       await AsyncStorage.setItem('onboarding_interests', JSON.stringify(interests))
-      router.push('/onboarding/images')
+      onNext()
     } catch (e) {
       setError('Ein Fehler ist aufgetreten')
     } finally {
@@ -43,14 +40,16 @@ export default function Interests() {
 
   return (
     <OnboardingScreenLayout
-      currentStep={CURRENT_STEP}
-      totalSteps={TOTAL_STEPS}
+      currentStep={4}
+      totalSteps={5}
       title="Was sind deine"
       subtitle="Interessen?"
       onNext={handleNext}
+      onBack={onBack}
       loading={loading}
       error={error}
       buttonDisabled={interests.length === 0}
+      hint="Wähle alle Interessen die auf dich zutreffen"
     >
       <ScrollView style={styles.container}>
         <View style={styles.interestsGrid}>

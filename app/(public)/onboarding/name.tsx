@@ -1,67 +1,78 @@
-import { TextInput } from 'react-native'
-import { useState } from 'react'
+import { TextInput, StyleSheet } from 'react-native'
+import { useState, useRef } from 'react'
 import { router } from 'expo-router'
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import { OnboardingLayout } from '../../../components/OnboardingLayout'
-import { onboardingStyles as styles } from '../../../lib/styles/onboarding'
+import { OnboardingScreenLayout } from '../../../components/OnboardingScreenLayout'
+import { colors } from '../../../lib/theme/colors'
+import { TOTAL_STEPS } from '../../../lib/utils/onboarding'
 
-const TOTAL_STEPS = 6
-const CURRENT_STEP = 2
+const CURRENT_STEP = 1
 
-export default function OnboardingName() {
+export default function Name() {
   const [name, setName] = useState('')
   const [error, setError] = useState<string | null>(null)
-
-  const isValidName = (name: string) => {
-    if (name.length < 2) return false
-    // First letter must be uppercase, second letter must be lowercase
-    return /^[A-Z][a-z]/.test(name)
-  }
-
-  const handleNameChange = (text: string) => {
-    setName(text)
-    if (text && !isValidName(text)) {
-      setError('Name must start with a capital letter followed by a lowercase letter')
-    } else {
-      setError(null)
-    }
-  }
+  const [loading, setLoading] = useState(false)
+  const [focusedField, setFocusedField] = useState<boolean>(false)
+  const inputRef = useRef<TextInput | null>(null)
 
   const handleNext = async () => {
     if (!name.trim()) {
-      setError('Name is required')
+      setError('Bitte gib deinen Namen ein')
       return
     }
 
-    if (!isValidName(name)) {
-      setError('Name must start with a capital letter followed by a lowercase letter')
-      return
-    }
+    setLoading(true)
+    setError(null)
 
-    await AsyncStorage.setItem('onboarding_name', name.trim())
-    console.log('Onboarding Progress - Name:', {
-      name: name.trim()
-    })
-    router.push('/onboarding/major')
+    try {
+      await AsyncStorage.setItem('onboarding_name', name.trim())
+      router.push('/onboarding/major')
+    } catch (e) {
+      setError('Ein Fehler ist aufgetreten')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
-    <OnboardingLayout
+    <OnboardingScreenLayout
       currentStep={CURRENT_STEP}
       totalSteps={TOTAL_STEPS}
-      title="What's your name?"
+      title="Wie ist dein"
+      subtitle="Name?"
+      onNext={handleNext}
+      loading={loading}
       error={error}
-      buttonText="Next"
-      buttonDisabled={!name.trim() || !isValidName(name)}
-      onButtonPress={handleNext}
+      buttonDisabled={!name.trim()}
     >
       <TextInput
-        style={styles.input}
+        style={[
+          styles.input,
+          focusedField && styles.inputFocused
+        ]}
         value={name}
-        onChangeText={handleNameChange}
-        placeholder="Enter your name (e.g. John)"
+        onChangeText={setName}
+        placeholder="Dein Vorname"
+        placeholderTextColor="#666"
         autoFocus
+        onFocus={() => setFocusedField(true)}
+        onBlur={() => setFocusedField(false)}
+        ref={inputRef}
       />
-    </OnboardingLayout>
+    </OnboardingScreenLayout>
   )
-} 
+}
+
+const styles = StyleSheet.create({
+  input: {
+    backgroundColor: colors.background.secondary,
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  inputFocused: {
+    borderColor: colors.accent.primary,
+  },
+}) 

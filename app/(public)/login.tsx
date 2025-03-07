@@ -1,26 +1,22 @@
-import React, { useState } from 'react'
-import { 
-  View, 
-  StyleSheet, 
-  TextInput, 
-  TouchableOpacity, 
-  Text, 
-  TouchableWithoutFeedback,
-  Keyboard
-} from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard } from 'react-native'
 import { router } from 'expo-router'
+import { useState } from 'react'
+import { colors } from '../../lib/theme/colors'
+import { SafeAreaView } from 'react-native-safe-area-context'
+import { Ionicons } from '@expo/vector-icons'
 import { useAuth } from '../../lib/context/auth'
 
 export default function Login() {
-  const { signIn } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [focusedField, setFocusedField] = useState<'email' | 'password' | null>(null)
+  const { signIn } = useAuth()
 
   const handleLogin = async () => {
     if (!email || !password) {
-      setError('Please fill in all fields')
+      setError('Bitte fülle alle Felder aus')
       return
     }
 
@@ -30,118 +26,176 @@ export default function Login() {
     try {
       const { error } = await signIn(email, password)
       if (error) throw error
-      router.replace('/(auth)/home')
     } catch (e) {
       console.log('Login error:', e)
-      setError('Invalid email or password')
+      setError('Login fehlgeschlagen. Bitte versuche es erneut.')
     } finally {
       setLoading(false)
+      console.log('Login successful')
+      router.replace('/(auth)/home')
     }
   }
 
   return (
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <View style={styles.container}>
-        <Text style={styles.title}>Login</Text>
-        {error && <Text style={styles.error}>{error}</Text>}
+    <SafeAreaView style={styles.safeArea}>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardAvoid}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={styles.content}>
+            <TouchableOpacity 
+              style={styles.backButton}
+              onPress={() => router.back()}
+            >
+              <Ionicons name="chevron-back" size={32} color={colors.text.primary} />
+            </TouchableOpacity>
 
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Email</Text>
-          <TextInput
-            style={styles.input}
-            value={email}
-            onChangeText={setEmail}
-            placeholder="Enter your email"
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
-        </View>
+            <View style={styles.headerContainer}>
+              <Text style={styles.title}>
+                Willkommen{'\n'}
+                <Text style={styles.highlight}>zurück</Text>
+              </Text>
+            </View>
 
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Password</Text>
-          <TextInput
-            style={styles.input}
-            value={password}
-            onChangeText={setPassword}
-            placeholder="Enter your password"
-            secureTextEntry
-          />
-        </View>
+            <View style={styles.form}>
+              <TextInput
+                style={[
+                  styles.input,
+                  focusedField === 'email' && styles.inputFocused
+                ]}
+                value={email}
+                onChangeText={setEmail}
+                placeholder="Email"
+                placeholderTextColor="#666"
+                autoCapitalize="none"
+                keyboardType="email-address"
+                onFocus={() => setFocusedField('email')}
+                onBlur={() => setFocusedField(null)}
+              />
+              <TextInput
+                style={[
+                  styles.input,
+                  focusedField === 'password' && styles.inputFocused
+                ]}
+                value={password}
+                onChangeText={setPassword}
+                placeholder="Passwort"
+                placeholderTextColor="#666"
+                secureTextEntry
+                onFocus={() => setFocusedField('password')}
+                onBlur={() => setFocusedField(null)}
+              />
+              {error && <Text style={styles.errorText}>{error}</Text>}
+            </View>
 
-        <TouchableOpacity 
-          style={styles.button}
-          onPress={handleLogin}
-          disabled={loading}
-        >
-          <Text style={styles.buttonText}>
-            {loading ? 'Logging in...' : 'Login'}
-          </Text>
-        </TouchableOpacity>
+            <View style={styles.bottomButtons}>
+              <TouchableOpacity 
+                style={styles.loginButton}
+                onPress={handleLogin}
+                disabled={loading}
+              >
+                <Text style={styles.loginButtonText}>
+                  {loading ? 'Lädt...' : 'Anmelden'}
+                </Text>
+              </TouchableOpacity>
 
-        <TouchableOpacity 
-          style={styles.linkContainer} 
-          onPress={() => router.push('/(public)/register')}
-        >
-          <Text style={styles.link}>Don't have an account? Sign up</Text>
-        </TouchableOpacity>
-      </View>
-    </TouchableWithoutFeedback>
+              <TouchableOpacity 
+                style={styles.registerButton}
+                onPress={() => router.push('/(public)/register')}
+              >
+                <Text style={styles.registerButtonText}>
+                  Noch kein Konto? Registrieren
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   )
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
-    padding: 20,
-    justifyContent: 'center'
+    backgroundColor: colors.primary,
+  },
+  keyboardAvoid: {
+    flex: 1,
+  },
+  content: {
+    flex: 1,
+    padding: 24,
+    justifyContent: 'space-between',
+    backgroundColor: colors.primary,
+  },
+  backButton: {
+    position: 'absolute',
+    top: 0,
+    left: 12,
+    padding: 8,
+    zIndex: 1,
+  },
+  headerContainer: {
+    alignItems: 'flex-start',
+    marginTop: 50,
   },
   title: {
-    fontSize: 24,
+    fontSize: 32,
     fontWeight: 'bold',
+    color: colors.text.primary,
     marginBottom: 20,
-    textAlign: 'center'
   },
-  inputContainer: {
-    marginBottom: 15
+  highlight: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: colors.accent.primary,
   },
-  label: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 5
+  form: {
+    width: '100%',
+    marginBottom: 20,
   },
   input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    padding: 15,
-    borderRadius: 5
+    backgroundColor: colors.background.secondary,
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 16,
+    fontSize: 16,
+    borderWidth: 2,
+    borderColor: 'transparent',
   },
-  button: {
-    backgroundColor: '#000',
-    padding: 15,
-    borderRadius: 5,
-    marginBottom: 15
+  inputFocused: {
+    borderColor: colors.accent.primary,
   },
-  buttonText: {
-    color: '#fff',
+  errorText: {
+    color: colors.status.error,
+    marginBottom: 16,
     textAlign: 'center',
-    fontWeight: 'bold'
   },
-  error: {
-    color: 'red',
-    marginBottom: 15,
-    textAlign: 'center'
+  loginButton: {
+    backgroundColor: colors.accent.primary,
+    padding: 16,
+    borderRadius: 30,
+    marginBottom: 16,
   },
-  linkContainer: {
-    marginTop: 15,
-    alignItems: 'center'
+  loginButtonText: {
+    color: colors.text.light,
+    fontSize: 18,
+    fontWeight: '600',
+    textAlign: 'center',
   },
-  link: {
-    color: '#000',
-    textAlign: 'center'
+  registerButton: {
+    marginBottom: 60,
   },
-  hint: {
-    color: '#999',
-    fontSize: 12,
-    marginTop: 5
-  }
+  registerButtonText: {
+    color: colors.accent.primary,
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  bottomButtons: {
+    width: '100%',
+    marginTop: 'auto',
+    paddingBottom: Platform.OS === 'android' ? 20 : 0,
+  },
 }) 

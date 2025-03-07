@@ -1,23 +1,20 @@
 import { TextInput, StyleSheet } from 'react-native'
 import { useState, useRef } from 'react'
-import { router } from 'expo-router'
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import { OnboardingScreenLayout } from '../../../components/OnboardingScreenLayout'
-import { colors } from '../../../lib/theme/colors'
-import { TOTAL_STEPS } from '../../../lib/utils/onboarding'
+import { OnboardingStepProps } from '../../lib/types/onboarding'
+import { OnboardingScreenLayout } from '../OnboardingScreenLayout'
+import { colors } from '../../lib/theme/colors'
 
-const CURRENT_STEP = 3
-
-export default function Bio() {
-  const [bio, setBio] = useState('')
+export function NameStep({ onNext }: OnboardingStepProps) {
+  const [name, setName] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [focusedField, setFocusedField] = useState<boolean>(false)
   const inputRef = useRef<TextInput | null>(null)
 
   const handleNext = async () => {
-    if (!bio.trim()) {
-      setError('Bitte schreib etwas über dich')
+    if (!name.trim()) {
+      setError('Bitte gib deinen Namen ein')
       return
     }
 
@@ -25,8 +22,8 @@ export default function Bio() {
     setError(null)
 
     try {
-      await AsyncStorage.setItem('onboarding_bio', bio.trim())
-      router.push('/onboarding/interests')
+      await AsyncStorage.setItem('onboarding_name', name.trim())
+      onNext()
     } catch (e) {
       setError('Ein Fehler ist aufgetreten')
     } finally {
@@ -36,28 +33,25 @@ export default function Bio() {
 
   return (
     <OnboardingScreenLayout
-      currentStep={CURRENT_STEP}
-      totalSteps={TOTAL_STEPS}
-      title="Erzähl uns"
-      subtitle="von dir"
+      currentStep={1}
+      totalSteps={5}
+      title="Wie ist dein"
+      subtitle="Name?"
       onNext={handleNext}
       loading={loading}
       error={error}
-      buttonDisabled={!bio.trim()}
+      buttonDisabled={!name.trim()}
+      hint="Dein Vorname reicht uns"
     >
       <TextInput
         style={[
           styles.input,
-          styles.bioInput,
           focusedField && styles.inputFocused
         ]}
-        value={bio}
-        onChangeText={setBio}
-        placeholder="Schreib etwas über dich..."
+        value={name}
+        onChangeText={setName}
+        placeholder="Dein Vorname"
         placeholderTextColor="#666"
-        multiline
-        numberOfLines={6}
-        maxLength={500}
         autoFocus
         onFocus={() => setFocusedField(true)}
         onBlur={() => setFocusedField(false)}
@@ -75,10 +69,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     borderWidth: 2,
     borderColor: 'transparent',
-  },
-  bioInput: {
-    height: 150,
-    textAlignVertical: 'top',
   },
   inputFocused: {
     borderColor: colors.accent.primary,

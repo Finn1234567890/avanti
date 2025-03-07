@@ -1,48 +1,78 @@
-import { TextInput } from 'react-native'
-import { useState } from 'react'
+import { TextInput, StyleSheet } from 'react-native'
+import { useState, useRef } from 'react'
 import { router } from 'expo-router'
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import { OnboardingLayout } from '../../../components/OnboardingLayout'
-import { onboardingStyles as styles } from '../../../lib/styles/onboarding'
+import { OnboardingScreenLayout } from '../../../components/OnboardingScreenLayout'
+import { colors } from '../../../lib/theme/colors'
+import { TOTAL_STEPS } from '../../../lib/utils/onboarding'
 
-const TOTAL_STEPS = 6
-const CURRENT_STEP = 3
+const CURRENT_STEP = 2
 
-export default function OnboardingMajor() {
+export default function Major() {
   const [major, setMajor] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [focusedField, setFocusedField] = useState<boolean>(false)
+  const inputRef = useRef<TextInput | null>(null)
 
   const handleNext = async () => {
     if (!major.trim()) {
-      setError('Major is required')
+      setError('Bitte gib deinen Studiengang ein')
       return
     }
-    await AsyncStorage.setItem('onboarding_major', major.trim())
-    const name = await AsyncStorage.getItem('onboarding_name')
-    console.log('Onboarding Progress - Major:', {
-      name,
-      major: major.trim()
-    })
-    router.push('/onboarding/interests')
+
+    setLoading(true)
+    setError(null)
+
+    try {
+      await AsyncStorage.setItem('onboarding_major', major.trim())
+      router.push('/onboarding/bio')
+    } catch (e) {
+      setError('Ein Fehler ist aufgetreten')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
-    <OnboardingLayout
+    <OnboardingScreenLayout
       currentStep={CURRENT_STEP}
       totalSteps={TOTAL_STEPS}
-      title="What's your major?"
+      title="Was"
+      subtitle="studierst du?"
+      onNext={handleNext}
+      loading={loading}
       error={error}
-      buttonText="Next"
       buttonDisabled={!major.trim()}
-      onButtonPress={handleNext}
     >
       <TextInput
-        style={styles.input}
+        style={[
+          styles.input,
+          focusedField && styles.inputFocused
+        ]}
         value={major}
         onChangeText={setMajor}
-        placeholder="Enter your major"
+        placeholder="Dein Studiengang"
+        placeholderTextColor="#666"
         autoFocus
+        onFocus={() => setFocusedField(true)}
+        onBlur={() => setFocusedField(false)}
+        ref={inputRef}
       />
-    </OnboardingLayout>
+    </OnboardingScreenLayout>
   )
-} 
+}
+
+const styles = StyleSheet.create({
+  input: {
+    backgroundColor: colors.background.secondary,
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  inputFocused: {
+    borderColor: colors.accent.primary,
+  },
+}) 

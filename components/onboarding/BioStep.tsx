@@ -1,14 +1,11 @@
 import { TextInput, StyleSheet } from 'react-native'
 import { useState, useRef } from 'react'
-import { router } from 'expo-router'
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import { OnboardingScreenLayout } from '../../../components/OnboardingScreenLayout'
-import { colors } from '../../../lib/theme/colors'
-import { TOTAL_STEPS } from '../../../lib/utils/onboarding'
+import { OnboardingStepProps } from '../../lib/types/onboarding'
+import { OnboardingScreenLayout } from '../OnboardingScreenLayout'
+import { colors } from '../../lib/theme/colors'
 
-const CURRENT_STEP = 3
-
-export default function Bio() {
+export function BioStep({ onNext, onBack }: OnboardingStepProps) {
   const [bio, setBio] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -26,7 +23,7 @@ export default function Bio() {
 
     try {
       await AsyncStorage.setItem('onboarding_bio', bio.trim())
-      router.push('/onboarding/interests')
+      onNext()
     } catch (e) {
       setError('Ein Fehler ist aufgetreten')
     } finally {
@@ -36,14 +33,16 @@ export default function Bio() {
 
   return (
     <OnboardingScreenLayout
-      currentStep={CURRENT_STEP}
-      totalSteps={TOTAL_STEPS}
+      currentStep={3}
+      totalSteps={5}
       title="Erzähl uns"
       subtitle="von dir"
       onNext={handleNext}
+      onBack={onBack}
       loading={loading}
       error={error}
       buttonDisabled={!bio.trim()}
+      hint="Eine kurze Beschreibung über dich"
     >
       <TextInput
         style={[

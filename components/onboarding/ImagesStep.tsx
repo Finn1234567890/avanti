@@ -3,14 +3,12 @@ import { useState } from 'react'
 import { router } from 'expo-router'
 import * as ImagePicker from 'expo-image-picker'
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import { OnboardingScreenLayout } from '../../../components/OnboardingScreenLayout'
-import { colors } from '../../../lib/theme/colors'
-import { TOTAL_STEPS } from '../../../lib/utils/onboarding'
-import { IMAGE_LIMITS } from '../../../lib/utils/constants'
-import { supabase } from '../../../lib/supabase/supabase'
-import { useAuth } from '../../../lib/context/auth'
-
-const CURRENT_STEP = 5
+import { OnboardingStepProps } from '../../lib/types/onboarding'
+import { OnboardingScreenLayout } from '../OnboardingScreenLayout'
+import { colors } from '../../lib/theme/colors'
+import { IMAGE_LIMITS } from '../../lib/utils/constants'
+import { supabase } from '../../lib/supabase/supabase'
+import { useAuth } from '../../lib/context/auth'
 
 type ImageInfo = {
   uri: string
@@ -18,7 +16,7 @@ type ImageInfo = {
   type: string | null
 }
 
-export default function Images() {
+export function ImagesStep({ onBack }: OnboardingStepProps) {
   const { session, refreshProfile } = useAuth()
   const [images, setImages] = useState<ImageInfo[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -56,7 +54,7 @@ export default function Images() {
     setImages(images.filter((_, i) => i !== index))
   }
 
-  const handleNext = async () => {
+  const handleComplete = async () => {
     if (images.length < IMAGE_LIMITS.MIN_IMAGES) {
       setError(`Bitte wähle mindestens ${IMAGE_LIMITS.MIN_IMAGES} Bilder aus`)
       return
@@ -104,21 +102,19 @@ export default function Images() {
 
   return (
     <OnboardingScreenLayout
-      currentStep={CURRENT_STEP}
-      totalSteps={TOTAL_STEPS}
+      currentStep={5}
+      totalSteps={5}
       title="Füge einige"
       subtitle="Bilder hinzu"
-      onNext={handleNext}
+      onNext={handleComplete}
+      onBack={onBack}
       loading={loading}
       error={error}
       buttonText="Fertig"
       buttonDisabled={images.length < IMAGE_LIMITS.MIN_IMAGES}
+      hint={`Füge mindestens ${IMAGE_LIMITS.MIN_IMAGES} Bilder hinzu`}
     >
       <ScrollView style={styles.container}>
-        <Text style={styles.subtitle}>
-          Füge mindestens {IMAGE_LIMITS.MIN_IMAGES} Bilder hinzu
-        </Text>
-        
         <View style={styles.imageGrid}>
           {images.map((image, index) => (
             <View key={index} style={styles.imageContainer}>
@@ -149,12 +145,6 @@ export default function Images() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  subtitle: {
-    color: colors.text.secondary,
-    fontSize: 14,
-    marginBottom: 16,
-    textAlign: 'center',
   },
   imageGrid: {
     flexDirection: 'row',
