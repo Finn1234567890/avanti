@@ -1,5 +1,5 @@
 import { TextInput, StyleSheet } from 'react-native'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { OnboardingStepProps } from '../../lib/types/onboarding'
 import { OnboardingScreenLayout } from '../OnboardingScreenLayout'
@@ -11,6 +11,18 @@ export function BioStep({ onNext, onBack }: OnboardingStepProps) {
   const [loading, setLoading] = useState(false)
   const [focusedField, setFocusedField] = useState<boolean>(false)
   const inputRef = useRef<TextInput | null>(null)
+
+  useEffect(() => {
+    const loadStoredBio = async () => {
+      try {
+        const storedBio = await AsyncStorage.getItem('onboarding_bio')
+        if (storedBio) setBio(storedBio)
+      } catch (e) {
+        console.error('Error loading stored bio:', e)
+      }
+    }
+    loadStoredBio()
+  }, [])
 
   const handleNext = async () => {
     if (!bio.trim()) {
@@ -33,8 +45,6 @@ export function BioStep({ onNext, onBack }: OnboardingStepProps) {
 
   return (
     <OnboardingScreenLayout
-      currentStep={3}
-      totalSteps={5}
       title="Erzähl uns"
       subtitle="von dir"
       onNext={handleNext}

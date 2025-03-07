@@ -23,14 +23,25 @@ export default function Welcome() {
           </View>
 
           <Text style={styles.terms}>
-            Durch Tippen auf 'Mit Email anmelden' stimmst du unseren Nutzungsbedingungen zu. Erfahre in unserer Datenschutzerklärung und Cookie-Richtlinie, wie wir deine Daten verarbeiten.
+            Durch Tippen auf 'Mit Email registrieren' stimmst du unseren Nutzungsbedingungen zu. Erfahre in unserer Datenschutzerklärung und Cookie-Richtlinie, wie wir deine Daten verarbeiten.
           </Text>
-          <TouchableOpacity 
+
+          <View style={styles.buttonContainer}>
+
+            <TouchableOpacity 
             style={styles.signInButton}
             onPress={() => router.push('/(public)/register')}
           >
-            <Text style={styles.signInText}>Mit Email anmelden</Text>
+            <Text style={styles.signInText}>Mit Email registrieren</Text>
           </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.registerButton}
+            onPress={() => router.push('/(public)/login')}
+          >
+            <Text style={styles.registerText}>Bereits registriert? Anmelden</Text>
+          </TouchableOpacity>
+          </View>
+          
         </View>
     </SafeAreaView>
       </LinearGradient>
@@ -67,6 +78,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 20,
   },
+  buttonContainer: {
+    width: '100%',
+    gap: 10,
+  },
   highlight: {
     fontSize: 30,
     fontWeight: '800',
@@ -76,7 +91,17 @@ const styles = StyleSheet.create({
     width: '100%',
     padding: 16,
     borderRadius: 30,
-    marginBottom: 60,
+  },
+  registerButton: {
+    width: '100%',
+    padding: 16,
+    marginBottom: 20,
+  },
+  registerText: {
+    color: colors.text.light,
+    fontSize: 18,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   signInText: {
     color: colors.text.primary,

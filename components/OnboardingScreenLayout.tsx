@@ -1,6 +1,7 @@
 import { View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { router } from 'expo-router'
+import * as Haptics from 'expo-haptics'
 import { colors } from '../lib/theme/colors'
 
 type Props = {
@@ -14,6 +15,7 @@ type Props = {
   buttonText?: string
   buttonDisabled?: boolean
   hint?: string
+  useKeyboardAvoid?: boolean
 }
 
 export function OnboardingScreenLayout({
@@ -27,13 +29,22 @@ export function OnboardingScreenLayout({
   buttonText = 'Weiter',
   buttonDisabled = false,
   hint,
+  useKeyboardAvoid = true,
 }: Props) {
+  const ContentWrapper = useKeyboardAvoid ? KeyboardAvoidingView : View
+
+  const handlePress = async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+    onNext()
+  }
+
   return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.keyboardAvoid}
+    <ContentWrapper 
+      behavior={useKeyboardAvoid ? (Platform.OS === 'ios' ? 'padding' : 'height') : undefined}
+      style={styles.container}
     >
       <View style={styles.content}>
+        
         <TouchableOpacity 
           style={styles.backButton}
           onPress={onBack || (() => router.back())}
@@ -48,18 +59,21 @@ export function OnboardingScreenLayout({
           </Text>
         </View>
 
-        <View style={styles.form}>
+        <View style={styles.mainContent}>
           {children}
-          {error && <Text style={styles.errorText}>{error}</Text>}
           {hint && <Text style={styles.hint}>{hint}</Text>}
         </View>
+      </View>
 
+      <View style={styles.footer}>
+        {error && <Text style={styles.errorText}>{error}</Text>}
+        
         <TouchableOpacity 
           style={[
             styles.submitButton,
             buttonDisabled && styles.submitButtonDisabled
           ]}
-          onPress={onNext}
+          onPress={handlePress}
           disabled={buttonDisabled || loading}
         >
           <Text style={styles.submitButtonText}>
@@ -67,23 +81,25 @@ export function OnboardingScreenLayout({
           </Text>
         </TouchableOpacity>
       </View>
-    </KeyboardAvoidingView>
+    </ContentWrapper>
   )
 }
 
 const styles = StyleSheet.create({
-  keyboardAvoid: {
+  container: {
     flex: 1,
+    backgroundColor: colors.primary,
   },
   content: {
     flex: 1,
     padding: 24,
-    paddingBottom: 0,
-    backgroundColor: colors.primary,
+  },
+  mainContent: {
+    flex: 1,
   },
   backButton: {
     position: 'absolute',
-    top: 0,
+    top: 20,
     left: 12,
     padding: 8,
     zIndex: 1,
@@ -97,15 +113,16 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: colors.text.primary,
     marginBottom: 20,
+    marginTop: 10,
   },
   highlight: {
     fontSize: 32,
     fontWeight: '800',
     color: colors.accent.primary,
   },
-  form: {
-    width: '100%',
-    marginBottom: 20,
+  footer: {
+    paddingHorizontal: 24,
+    paddingBottom: 24,
   },
   errorText: {
     color: colors.status.error,
@@ -115,15 +132,15 @@ const styles = StyleSheet.create({
   hint: {
     color: colors.text.secondary,
     fontSize: 14,
-    marginTop: 8,
+    marginTop: 16,
+    fontWeight: '500',
     textAlign: 'center',
   },
   submitButton: {
     backgroundColor: colors.accent.primary,
     padding: 16,
     borderRadius: 30,
-    marginBottom: 16,
-    marginHorizontal: 24,
+    marginBottom: 50,
   },
   submitButtonDisabled: {
     opacity: 0.5,

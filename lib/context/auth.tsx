@@ -24,96 +24,81 @@ const AuthContext = createContext<AuthContextType>({
   signIn: async () => ({ error: null }),
 })
 
-const checkPhoneNumber = async (userId: string) => {
-  const { data, error } = await supabase
-    .from('PhoneNumbers')
-    .select('*')
-    .eq('User-ID', userId)
-    .single()
-  
-  console.log('Phone check result:', { data, error })
-  return data
-}
-
-function useProtectedRoute(session: Session | null, hasProfile: boolean, loading: boolean) {
+function useProtectedRoute(session: Session | null, hasPhone: boolean, hasProfile: boolean) {
   const segments = useSegments() as string[]
 
   useEffect(() => {
-    const checkRouting = async () => {
-      if (loading) return
-
-      const isPublicGroup = segments[0] === '(public)'
+    const route = async () => {
+      // Get current route group
       const isAuthGroup = segments[0] === '(auth)'
       const isOnboarding = segments.includes('onboarding')
 
-      console.log('Routing check:', { session, hasProfile, isPublicGroup, isAuthGroup, isOnboarding })
-
+      // No session -> Welcome
       if (!session) {
-        console.log('No session found')
         if (isAuthGroup) {
-          router.replace('/(public)/welcome')
+          await router.replace('/(public)/welcome')
         }
         return
       }
 
-      // Don't interrupt onboarding flow once it's started
-      if (isOnboarding && segments.length > 1 && segments[1] !== 'phone') {
+      // Has session but no phone -> Phone
+      if (!hasPhone) {
+        if (!segments.includes('phone')) {
+          await router.replace('/(public)/phone')
+        }
         return
       }
 
-      // Check profile and phone status only when not in onboarding
+      // Has phone but no profile -> Onboarding
       if (!hasProfile) {
-        console.log('No profile found, checking phone status')
-        const phoneData = await checkPhoneNumber(session.user.id)
-        if (phoneData) {
-          router.replace('/(public)/onboarding/')
-        } else {
-          router.replace('/(public)/phone')
+        if (!isOnboarding) {
+          await router.replace('/(public)/onboarding')
         }
         return
       }
 
-      // User has completed onboarding
-      if (isPublicGroup && !isOnboarding) {
-        console.log('Profile complete, redirecting to home')
-        router.replace('/(auth)/home')
+      // Has everything -> Home
+      if (!isAuthGroup) {
+        await router.replace('/(auth)/home')
       }
     }
 
-    checkRouting()
-  }, [session, hasProfile, segments, loading])
+    route()
+  }, [session, hasPhone, hasProfile, segments])
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [initializing, setInitializing] = useState(true)
   const [session, setSession] = useState<Session | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [hasPhone, setHasPhone] = useState(false)
   const [hasProfile, setHasProfile] = useState(false)
 
   const checkProfile = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('Profile')
-        .select('User-ID')
-        .eq('User-ID', userId)
-        .single()
+    const { data } = await supabase
+      .from('Profile')
+      .select('User-ID')
+      .eq('User-ID', userId)
+      .single()
+    return !!data
+  }
 
-      if (error && error.code !== 'PGRST116') {
-        console.error('Profile check error:', error)
-        return false
-      }
-
-      return !!data
-    } catch (e) {
-      console.error('Profile check failed:', e)
-      return false
-    }
+  const checkPhone = async (userId: string) => {
+    const { data } = await supabase
+      .from('PhoneNumbers')
+      .select('*')
+      .eq('User-ID', userId)
+      .single()
+    return !!data
   }
 
   const refreshProfile = async () => {
     if (session?.user) {
-      const hasProfile = await checkProfile(session.user.id)
-      setHasProfile(hasProfile)
+      const [profileExists, phoneExists] = await Promise.all([
+        checkProfile(session.user.id),
+        checkPhone(session.user.id)
+      ])
+      setHasProfile(profileExists)
+      setHasPhone(phoneExists)
     }
   }
 
@@ -121,17 +106,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const initializeAuth = async () => {
       try {
         const { data: { session: initialSession } } = await supabase.auth.getSession()
-        console.log('Initial session check:', initialSession)
         setSession(initialSession)
         
         if (initialSession?.user) {
-          const profileExists = await checkProfile(initialSession.user.id)
+          const [profileExists, phoneExists] = await Promise.all([
+            checkProfile(initialSession.user.id),
+            checkPhone(initialSession.user.id)
+          ])
           setHasProfile(profileExists)
+          setHasPhone(phoneExists)
         }
       } catch (e) {
         console.error('Error initializing auth:', e)
       } finally {
-        setLoading(false)
         setInitializing(false)
       }
     }
@@ -142,19 +129,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(newSession)
       
       if (newSession?.user) {
-        const hasProfile = await checkProfile(newSession.user.id)
-        setHasProfile(hasProfile)
+        const [profileExists, phoneExists] = await Promise.all([
+          checkProfile(newSession.user.id),
+          checkPhone(newSession.user.id)
+        ])
+        setHasProfile(profileExists)
+        setHasPhone(phoneExists)
       } else {
         setHasProfile(false)
+        setHasPhone(false)
       }
-      
-      setLoading(false)
     })
 
     return () => subscription.unsubscribe()
   }, [])
 
-  useProtectedRoute(session, hasProfile, loading)
+  useProtectedRoute(session, hasPhone, hasProfile)
 
   const signUp = async (email: string, password: string) => {
     try {
@@ -180,18 +170,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const value = {
-    session,
-    loading,
-    hasProfile,
-    refreshProfile,
-    signOut: async () => {
-      await supabase.auth.signOut()
-    },
-    signUp,
-    signIn,
-  }
-
   if (initializing) {
     return (
       <View style={styles.loadingContainer}>
@@ -201,7 +179,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider value={{ 
+      session, 
+      hasProfile,
+      refreshProfile,
+      signOut: async () => {
+        await supabase.auth.signOut()
+      },
+      signUp,
+      signIn,
+      loading: initializing
+    }}>
       {children}
     </AuthContext.Provider>
   )

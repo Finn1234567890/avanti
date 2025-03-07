@@ -1,5 +1,5 @@
 import { TextInput, StyleSheet } from 'react-native'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { OnboardingStepProps } from '../../lib/types/onboarding'
 import { OnboardingScreenLayout } from '../OnboardingScreenLayout'
@@ -11,6 +11,18 @@ export function MajorStep({ onNext, onBack }: OnboardingStepProps) {
   const [loading, setLoading] = useState(false)
   const [focusedField, setFocusedField] = useState<boolean>(false)
   const inputRef = useRef<TextInput | null>(null)
+
+  useEffect(() => {
+    const loadStoredMajor = async () => {
+      try {
+        const storedMajor = await AsyncStorage.getItem('onboarding_major')
+        if (storedMajor) setMajor(storedMajor)
+      } catch (e) {
+        console.error('Error loading stored major:', e)
+      }
+    }
+    loadStoredMajor()
+  }, [])
 
   const handleNext = async () => {
     if (!major.trim()) {
@@ -33,8 +45,7 @@ export function MajorStep({ onNext, onBack }: OnboardingStepProps) {
 
   return (
     <OnboardingScreenLayout
-      currentStep={2}
-      totalSteps={5}
+      
       title="Was"
       subtitle="studierst du?"
       onNext={handleNext}

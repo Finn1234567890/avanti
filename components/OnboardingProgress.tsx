@@ -14,7 +14,7 @@ export function OnboardingProgress({ currentStep, totalSteps }: Props) {
     Animated.timing(progressAnim, {
       toValue: currentStep,
       duration: 300,
-      useNativeDriver: false,
+      useNativeDriver: false
     }).start()
   }, [currentStep])
 
@@ -48,7 +48,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     paddingHorizontal: 24,
-    paddingTop: 16,
+    paddingTop: 8,
   },
   progressContainer: {
     flexDirection: 'row',
@@ -56,21 +56,7 @@ const styles = StyleSheet.create({
   },
   progressBar: {
     flex: 1,
-    height: 4,
+    height: 6,
     borderRadius: 2,
-  },
-  progressBarActive: {
-    backgroundColor: colors.accent.primary,
-  },
-  progressBarInactive: {
-    backgroundColor: colors.background.secondary,
-  },
-  progressBarFirst: {
-    borderTopLeftRadius: 2,
-    borderBottomLeftRadius: 2,
-  },
-  progressBarLast: {
-    borderTopRightRadius: 2,
-    borderBottomRightRadius: 2,
-  },
+  }
 }) 

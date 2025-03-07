@@ -1,19 +1,28 @@
 import { View, StyleSheet, Animated } from 'react-native'
 import { useState, useRef } from 'react'
-import { SafeWrapper } from '../../../components/SafeWrapper'
-import { OnboardingProgress } from '../../../components/OnboardingProgress'
-import { NameStep } from '../../../components/onboarding/NameStep'
-import { MajorStep } from '../../../components/onboarding/MajorStep'
-import { BioStep } from '../../../components/onboarding/BioStep'
-import { InterestsStep } from '../../../components/onboarding/InterestsStep'
-import { ImagesStep } from '../../../components/onboarding/ImagesStep'
-import { colors } from '../../../lib/theme/colors'
+import { SafeAreaWrapper } from '../../components/SafeAreaWrapper'
+import { OnboardingProgress } from '../../components/OnboardingProgress'
+import { NameStep } from '../../components/onboarding/NameStep'
+import { MajorStep } from '../../components/onboarding/MajorStep'
+import { BioStep } from '../../components/onboarding/BioStep'
+import { InterestsStep } from '../../components/onboarding/InterestsStep'
+import { ImagesStep } from '../../components/onboarding/ImagesStep'
+import { colors } from '../../lib/theme/colors'
+import { useAuth } from '../../lib/context/auth'
+import { router } from 'expo-router'
 
 export const TOTAL_STEPS = 5
 
 export default function Onboarding() {
+  const { session } = useAuth()
   const [currentStep, setCurrentStep] = useState(1)
   const slideAnim = useRef(new Animated.Value(0)).current
+
+  // Redirect if no session
+  if (!session) {
+    router.replace('/(public)/welcome')
+    return null
+  }
 
   const handleNext = () => {
     Animated.timing(slideAnim, {
@@ -67,20 +76,20 @@ export default function Onboarding() {
         {currentStep === 2 && <MajorStep onNext={handleNext} onBack={handleBack} />}
         {currentStep === 3 && <BioStep onNext={handleNext} onBack={handleBack} />}
         {currentStep === 4 && <InterestsStep onNext={handleNext} onBack={handleBack} />}
-        {currentStep === 5 && <ImagesStep onBack={handleBack} />}
+        {currentStep === 5 && <ImagesStep onNext={handleNext} onBack={handleBack} />}
       </Animated.View>
     )
   }
 
   return (
-    <SafeWrapper>
+    <SafeAreaWrapper>
       <View style={styles.container}>
         <View style={styles.progressContainer}>
           <OnboardingProgress currentStep={currentStep} totalSteps={TOTAL_STEPS} />
         </View>
         {renderStep()}
       </View>
-    </SafeWrapper>
+    </SafeAreaWrapper>
   )
 }
 
@@ -95,6 +104,8 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 10,
+    paddingHorizontal: 24,
+    paddingTop: 12,
   },
   stepContainer: {
     flex: 1,

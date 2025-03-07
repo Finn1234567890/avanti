@@ -4,7 +4,16 @@ export const IMAGE_LIMITS = {
 } as const
 
 export const INTERESTS = [
-  'Sports', 'Music', 'Art', 'Gaming',
-  'Reading', 'Travel', 'Food', 'Movies',
-  'Technology', 'Fashion', 'Fitness', 'Photography'
+  'Sport & Fitness',
+  'Reisen',
+  'Gaming',
+  'Musik machen',
+  'Fotografie',
+  'Kochen & Backen',
+  'Kunst & Kreativität',
+  'Technik & Programmierung',
+  'Filme & Serien',
+  'Lesen',
+  'Partys & Ausgehen',
+  'Ehrenamt'
 ] as const 

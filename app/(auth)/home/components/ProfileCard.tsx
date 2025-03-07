@@ -5,19 +5,26 @@ import { supabase } from '../../../../lib/supabase/supabase'
 import { useAuth } from '../../../../lib/context/auth'
 import { useState, useEffect } from 'react'
 import * as Haptics from 'expo-haptics'
+import { colors } from '../../../../lib/theme/colors'
+import { LinearGradient } from 'expo-linear-gradient'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-const { height: SCREEN_HEIGHT } = Dimensions.get('window')
+const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window')
+const CARD_MARGIN = 16 // Margin from screen edges
+const CARD_WIDTH = SCREEN_WIDTH - (CARD_MARGIN * 2) // Card width with margins
 
 type ProfileCardProps = {
   profile: Profile
-  currentImageIndex: number
+  isActive: boolean
   onImagePress: (profileId: string, imagesLength: number) => void
 }
 
-export function ProfileCard({ profile, currentImageIndex, onImagePress }: ProfileCardProps) {
+export function ProfileCard({ profile, isActive, onImagePress }: ProfileCardProps) {
   const { session } = useAuth()
   const [connectionStatus, setConnectionStatus] = useState<string | null>(null)
   const hasMultipleImages = profile.images && profile.images.length > 1
+  const insets = useSafeAreaInsets()
+  const [currentImageIndex, setCurrentImageIndex] = useState(0)
 
   useEffect(() => {
     checkExistingConnection()
@@ -87,80 +94,116 @@ export function ProfileCard({ profile, currentImageIndex, onImagePress }: Profil
   }
 
   return (
-    <View style={styles.profileCard}>
-      {profile.images && profile.images.length > 0 && (
-        <TouchableOpacity
-          activeOpacity={0.9}
-          onPress={handleImageTap}
-          disabled={!hasMultipleImages}
-          style={styles.imageContainer}
-        >
-          <Image 
-            source={{ uri: profile.images[currentImageIndex].url }}
-            style={styles.profileImage}
-          />
-          {hasMultipleImages && (
-            <ImageIndicators 
-              total={profile.images.length} 
-              current={currentImageIndex} 
+    <View style={[
+      styles.profileCard
+    ]}>
+      <TouchableOpacity
+        activeOpacity={0.95}
+        onPress={handleImageTap}
+        disabled={!hasMultipleImages}
+        style={styles.imageContainer}
+      >
+        {profile.images && profile.images.length > 0 && (
+          <View>
+            <Image 
+              source={{ uri: profile.images[currentImageIndex].url }}
+              style={styles.profileImage}
             />
-          )}
-        </TouchableOpacity>
-      )}
-      
-      <View style={styles.profileInfo}>
-        <View style={styles.headerContainer}>
-          <View style={styles.nameContainer}>
-            <Text style={styles.name}>{profile.name}</Text>
-            <Text style={styles.major}>{profile.major}</Text>
-          </View>
-          
-          <TouchableOpacity 
-            style={[
-              styles.connectButton,
-              connectionStatus && styles.connectButtonDisabled
-            ]}
-            onPress={handleConnect}
-            disabled={!!connectionStatus}
-          >
-            <Text style={styles.connectButtonText}>{getButtonText()}</Text>
-          </TouchableOpacity>
-        </View>
-        
-        <View style={styles.tagsContainer}>
-          {profile.tags.map((tag, index) => (
-            <View key={index} style={styles.tag}>
-              <Text style={styles.tagText}>{tag}</Text>
-            </View>
-          ))}
-        </View>
+            {hasMultipleImages && (
+              <ImageIndicators 
+                total={profile.images.length} 
+                current={currentImageIndex} 
+              />
+            )}
+            <LinearGradient
+              colors={[
+                'transparent',
+                'rgba(0,0,0,0.4)',
+                'rgba(0,0,0,0.8)'
+              ]}
+              style={styles.gradient}
+            >
+              <View style={styles.profileInfo}>
+                <View style={styles.headerContainer}>
+                  <View style={styles.nameContainer}>
+                    <Text style={styles.name}>{profile.name}</Text>
+                    <Text style={styles.major}>{profile.major}</Text>
+                  </View>
+                  
+                  <TouchableOpacity 
+                    style={[
+                      styles.connectButton,
+                      connectionStatus && styles.connectButtonDisabled
+                    ]}
+                    onPress={handleConnect}
+                    disabled={!!connectionStatus}
+                  >
+                    <Text style={styles.connectButtonText}>{getButtonText()}</Text>
+                  </TouchableOpacity>
+                </View>
 
-        <Text style={styles.bio} numberOfLines={3}>
-          {profile.description}
-        </Text>
-      </View>
+                <View style={styles.tagsContainer}>
+                  {profile.tags.map((tag, index) => (
+                    <View key={index} style={styles.tag}>
+                      <Text style={styles.tagText}>{tag}</Text>
+                    </View>
+                  ))}
+                </View>
+
+                <Text style={styles.bio} numberOfLines={3}>
+                  {profile.description}
+                </Text>
+              </View>
+            </LinearGradient>
+          </View>
+        )}
+      </TouchableOpacity>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
   profileCard: {
-    height: SCREEN_HEIGHT,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background.primary,
+    marginHorizontal: 10,
+    marginTop: 10,
+    borderRadius: 40,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    height: SCREEN_HEIGHT * 0.75,
+    marginBottom: SCREEN_HEIGHT * 0.1,
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 5,
   },
   imageContainer: {
-    height: '65%',
+    height: '100%',
     width: '100%',
-    backgroundColor: '#f0f0f0',
+    backgroundColor: colors.background.secondary,
+    overflow: 'hidden',
   },
   profileImage: {
     width: '100%',
     height: '100%',
     resizeMode: 'cover',
   },
+  gradient: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '45%', // Increased slightly for better text visibility
+    justifyContent: 'flex-end',
+    borderBottomLeftRadius: 20, // Match parent border radius
+    borderBottomRightRadius: 20,
+  },
   profileInfo: {
-    flex: 0.3,
     padding: 20,
+    paddingBottom: 30,
   },
   headerContainer: {
     flexDirection: 'row',
@@ -173,13 +216,14 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   name: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    color: '#000',
+    fontSize: 28,
+    fontWeight: '600',
+    color: colors.text.light,
   },
   major: {
     fontSize: 18,
-    color: '#666',
+    color: colors.text.light,
+    opacity: 0.9,
     marginTop: 4,
   },
   tagsContainer: {
@@ -189,32 +233,35 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   tag: {
-    backgroundColor: '#f0f0f0',
+    backgroundColor: colors.accent.primary,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
   },
   tagText: {
     fontSize: 14,
-    color: '#666',
+    color: colors.text.light,
+    fontWeight: '500',
   },
   bio: {
     fontSize: 16,
-    color: '#333',
+    color: colors.text.light,
+    opacity: 0.9,
     lineHeight: 24,
   },
   connectButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: colors.accent.primary,
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 20,
     alignSelf: 'flex-start',
   },
   connectButtonDisabled: {
-    backgroundColor: '#ccc',
+    backgroundColor: colors.background.secondary,
+    opacity: 0.8,
   },
   connectButtonText: {
-    color: '#fff',
+    color: colors.text.light,
     fontSize: 14,
     fontWeight: '600',
   }

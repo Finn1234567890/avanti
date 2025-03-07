@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, FlatList, ViewToken, Dimensions, Platform, RefreshControl } from 'react-native'
+import { View, Text, StyleSheet, FlatList, ViewToken, Dimensions, Platform, RefreshControl, TouchableOpacity } from 'react-native'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from '../../../lib/context/auth'
 import { supabase } from '../../../lib/supabase/supabase'
@@ -8,10 +8,15 @@ import { Profile } from './types'
 import { LoadingView } from './components/LoadingView'
 import { ErrorView } from './components/ErrorView'
 import * as Haptics from 'expo-haptics'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { colors } from '../../../lib/theme/colors'
+import { Ionicons } from '@expo/vector-icons'
 
 const PROFILES_PER_PAGE = 5
-const { height: SCREEN_HEIGHT } = Dimensions.get('window')
 const BOTTOM_NAV_HEIGHT = Platform.OS === 'ios' ? 83 : 60
+const { height } = Dimensions.get('window')
+const SCREEN_HEIGHT = height - BOTTOM_NAV_HEIGHT
+
 
 export default function Home() {
   const { session } = useAuth()
@@ -25,6 +30,8 @@ export default function Home() {
     itemVisiblePercentThreshold: 50
   })
   const [refreshing, setRefreshing] = useState(false)
+  const insets = useSafeAreaInsets()
+  const [currentIndex, setCurrentIndex] = useState(0)
 
   useEffect(() => {
     loadProfiles()
@@ -111,21 +118,10 @@ export default function Home() {
     loadProfiles(0)
   }
 
-  const renderProfile = ({ item: profile }: { item: Profile }) => (
-    <ProfileCard
-      profile={profile}
-      currentImageIndex={currentImageIndexes[profile['P-ID']] || 0}
-      onImagePress={handleImagePress}
-    />
-  )
-
   // Handle viewability changes
-  const onViewableItemsChanged = useCallback(({ viewableItems }: { 
-    viewableItems: ViewToken[]
-  }) => {
+  const onViewableItemsChanged = useCallback(({ viewableItems }: { viewableItems: ViewToken[] }) => {
     if (viewableItems.length > 0) {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
-      console.log('Currently viewing profile:', viewableItems[0].item['P-ID'])
+      setCurrentIndex(viewableItems[0].index || 0)
     }
   }, [])
 
@@ -148,23 +144,39 @@ export default function Home() {
 
   return (
     <SafeAreaWrapper>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Avanti</Text>
+        <View style={styles.headerRight}>
+          <TouchableOpacity style={styles.headerButton}>
+            <Ionicons name="arrow-undo" size={24} color={colors.text.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.headerButton}>
+            <Ionicons name="menu" size={24} color={colors.text.primary} />
+          </TouchableOpacity>
+        </View>
+      </View>
       <View style={styles.container}>
         <FlatList
           data={profiles}
-          renderItem={renderProfile}
           keyExtractor={(item) => item['P-ID']}
-          showsVerticalScrollIndicator={false}
+          renderItem={({ item, index }) => (
+            <ProfileCard
+              profile={item}
+              isActive={index === currentIndex}
+              onImagePress={handleImagePress}
+            />
+          )}
+          pagingEnabled
           snapToInterval={SCREEN_HEIGHT}
           decelerationRate="fast"
-          onEndReached={handleEndReached}
-          onEndReachedThreshold={0.5}
-          onViewableItemsChanged={onViewableItemsChanged}
           viewabilityConfig={viewabilityConfig.current}
+          onViewableItemsChanged={onViewableItemsChanged}
+          showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor="#007AFF"
+              tintColor={colors.accent.primary}
             />
           }
         />
@@ -176,26 +188,31 @@ export default function Home() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
-  },
-  header: {
-    height: 44,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  headerText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#000',
-  },
-  listContent: {
-    flexGrow: 1,
+    backgroundColor: colors.background.primary,
   },
   error: {
     color: 'red',
     textAlign: 'center',
     margin: 20,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 2, 
+    backgroundColor: colors.background.primary,
+  },
+  headerTitle: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: colors.text.primary,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  headerButton: {
+    padding: 4,
   },
 }) 

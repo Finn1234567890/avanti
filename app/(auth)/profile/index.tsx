@@ -78,7 +78,7 @@ export default function Profile() {
 
               // Account deleted successfully, sign out
               await signOut()
-              router.replace('/(public)/register')
+              router.replace('/(public)/welcome')
             } catch (e) {
               console.error('Error deleting account:', e)
               Alert.alert('Error', 'Failed to delete account. Please try again.')
@@ -95,7 +95,7 @@ export default function Profile() {
       if (error) throw error
       
       await signOut()
-      router.replace('/(public)')
+      router.replace('/(public)/welcome')
     } catch (error) {
       console.error('Error signing out:', error)
       Alert.alert('Error', 'Failed to sign out')

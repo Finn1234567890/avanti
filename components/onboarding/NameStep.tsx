@@ -1,5 +1,5 @@
 import { TextInput, StyleSheet } from 'react-native'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { OnboardingStepProps } from '../../lib/types/onboarding'
 import { OnboardingScreenLayout } from '../OnboardingScreenLayout'
@@ -11,6 +11,18 @@ export function NameStep({ onNext }: OnboardingStepProps) {
   const [loading, setLoading] = useState(false)
   const [focusedField, setFocusedField] = useState<boolean>(false)
   const inputRef = useRef<TextInput | null>(null)
+
+  useEffect(() => {
+    const loadStoredName = async () => {
+      try {
+        const storedName = await AsyncStorage.getItem('onboarding_name')
+        if (storedName) setName(storedName)
+      } catch (e) {
+        console.error('Error loading stored name:', e)
+      }
+    }
+    loadStoredName()
+  }, [])
 
   const handleNext = async () => {
     if (!name.trim()) {
@@ -33,8 +45,7 @@ export function NameStep({ onNext }: OnboardingStepProps) {
 
   return (
     <OnboardingScreenLayout
-      currentStep={1}
-      totalSteps={5}
+      
       title="Wie ist dein"
       subtitle="Name?"
       onNext={handleNext}

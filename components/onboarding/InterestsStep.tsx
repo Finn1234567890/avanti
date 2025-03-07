@@ -1,5 +1,5 @@
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native'
-import { useState } from 'react'
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
+import { useState, useEffect } from 'react'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { OnboardingStepProps } from '../../lib/types/onboarding'
 import { OnboardingScreenLayout } from '../OnboardingScreenLayout'
@@ -7,21 +7,38 @@ import { colors } from '../../lib/theme/colors'
 import { INTERESTS } from '../../lib/utils/constants'
 
 export function InterestsStep({ onNext, onBack }: OnboardingStepProps) {
-  const [interests, setInterests] = useState<string[]>([])
+  const [selectedInterests, setSelectedInterests] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
+  useEffect(() => {
+    const loadStoredInterests = async () => {
+      try {
+        const storedInterests = await AsyncStorage.getItem('onboarding_interests')
+        if (storedInterests) {
+          setSelectedInterests(JSON.parse(storedInterests))
+        }
+      } catch (e) {
+        console.error('Error loading stored interests:', e)
+      }
+    }
+    loadStoredInterests()
+  }, [])
+
   const toggleInterest = (interest: string) => {
-    setInterests(prev => 
-      prev.includes(interest)
-        ? prev.filter(i => i !== interest)
-        : [...prev, interest]
-    )
+    setSelectedInterests(prev => {
+      if (prev.includes(interest)) {
+        return prev.filter(i => i !== interest)
+      }
+      if (prev.length >= 5) return prev // Max 5 interests
+      return [...prev, interest]
+    })
+    setError(null)
   }
 
   const handleNext = async () => {
-    if (interests.length === 0) {
-      setError('Bitte wähle mindestens ein Interesse')
+    if (selectedInterests.length < 2) {
+      setError('Bitte wähle mindestens 2 Interessen')
       return
     }
 
@@ -29,7 +46,7 @@ export function InterestsStep({ onNext, onBack }: OnboardingStepProps) {
     setError(null)
 
     try {
-      await AsyncStorage.setItem('onboarding_interests', JSON.stringify(interests))
+      await AsyncStorage.setItem('onboarding_interests', JSON.stringify(selectedInterests))
       onNext()
     } catch (e) {
       setError('Ein Fehler ist aufgetreten')
@@ -40,38 +57,40 @@ export function InterestsStep({ onNext, onBack }: OnboardingStepProps) {
 
   return (
     <OnboardingScreenLayout
-      currentStep={4}
-      totalSteps={5}
       title="Was sind deine"
       subtitle="Interessen?"
       onNext={handleNext}
       onBack={onBack}
       loading={loading}
       error={error}
-      buttonDisabled={interests.length === 0}
-      hint="Wähle alle Interessen die auf dich zutreffen"
+      buttonDisabled={selectedInterests.length < 2}
+      hint={`${selectedInterests.length}/2 · Wähle mindestens 2 Interessen`}
+      useKeyboardAvoid={false}
     >
-      <ScrollView style={styles.container}>
-        <View style={styles.interestsGrid}>
+      <View style={styles.container}>
+        <View style={styles.pillContainer}>
           {INTERESTS.map(interest => (
             <TouchableOpacity
               key={interest}
               style={[
-                styles.interest,
-                interests.includes(interest) && styles.interestSelected
+                styles.pill,
+                selectedInterests.includes(interest) && styles.pillSelected
               ]}
               onPress={() => toggleInterest(interest)}
+              disabled={selectedInterests.length >= 5 && !selectedInterests.includes(interest)}
             >
-              <Text style={[
-                styles.interestText,
-                interests.includes(interest) && styles.interestTextSelected
-              ]}>
+              <Text 
+                style={[
+                  styles.pillText,
+                  selectedInterests.includes(interest) && styles.pillTextSelected
+                ]}
+              >
                 {interest}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
-      </ScrollView>
+      </View>
     </OnboardingScreenLayout>
   )
 }
@@ -80,28 +99,36 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  interestsGrid: {
+  pillContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
-    padding: 10,
+    gap: 6,
+    paddingTop: 10,
+    alignItems: 'flex-start',
+    justifyContent: 'flex-start',
   },
-  interest: {
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: colors.border,
+  pill: {
     backgroundColor: colors.background.secondary,
+    borderRadius: 25,
+    borderWidth: 2,
+    borderColor: colors.text.secondary,
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    marginBottom: 4,
+
   },
-  interestSelected: {
-    backgroundColor: colors.accent.primary,
-    borderColor: colors.accent.primary,
+  pillSelected: {
+    color: colors.accent.secondary,
+    backgroundColor: colors.accent.secondary,
+    borderColor: colors.accent.secondary,
   },
-  interestText: {
-    color: colors.text.primary,
+  pillText: {
+    color: colors.text.secondary,
+    fontSize: 15,
+    fontWeight: '600',
+    textAlign: 'center',
   },
-  interestTextSelected: {
-    color: colors.text.light,
+  pillTextSelected: {
+    color: colors.background.primary,
   },
 }) 

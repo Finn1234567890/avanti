@@ -1,5 +1,5 @@
 import { View, Text, Image, TouchableOpacity, ScrollView, StyleSheet } from 'react-native'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { router } from 'expo-router'
 import * as ImagePicker from 'expo-image-picker'
 import AsyncStorage from '@react-native-async-storage/async-storage'
@@ -9,9 +9,10 @@ import { colors } from '../../lib/theme/colors'
 import { IMAGE_LIMITS } from '../../lib/utils/constants'
 import { supabase } from '../../lib/supabase/supabase'
 import { useAuth } from '../../lib/context/auth'
-
+import { uploadImage } from '../../lib/utils/imageUpload'
 type ImageInfo = {
   uri: string
+  base64: string
   fileName: string | null
   type: string | null
 }
@@ -21,6 +22,20 @@ export function ImagesStep({ onBack }: OnboardingStepProps) {
   const [images, setImages] = useState<ImageInfo[]>([])
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    const loadStoredImages = async () => {
+      try {
+        const storedImages = await AsyncStorage.getItem('onboarding_images')
+        if (storedImages) {
+          setImages(JSON.parse(storedImages))
+        }
+      } catch (e) {
+        console.error('Error loading stored images:', e)
+      }
+    }
+    loadStoredImages()
+  }, [])
 
   const pickImage = async () => {
     if (images.length >= IMAGE_LIMITS.MAX_IMAGES) {
@@ -34,18 +49,23 @@ export function ImagesStep({ onBack }: OnboardingStepProps) {
         allowsEditing: true,
         aspect: [4, 5],
         quality: 0.8,
+        base64: true
       })
 
-      if (!result.canceled) {
+      if (!result.canceled && result.assets[0].base64) {
         const newImage: ImageInfo = {
           uri: result.assets[0].uri,
+          base64: result.assets[0].base64,
           fileName: result.assets[0].fileName || 'upload.jpg',
           type: result.assets[0].type || 'image/jpeg'
         }
         setImages([...images, newImage])
         setError(null)
+      } else {
+        setError('Bild konnte nicht geladen werden')
       }
     } catch (e) {
+      console.error('Error picking image:', e)
       setError('Fehler beim Auswählen des Bildes')
     }
   }
@@ -57,6 +77,11 @@ export function ImagesStep({ onBack }: OnboardingStepProps) {
   const handleComplete = async () => {
     if (images.length < IMAGE_LIMITS.MIN_IMAGES) {
       setError(`Bitte wähle mindestens ${IMAGE_LIMITS.MIN_IMAGES} Bilder aus`)
+      return
+    }
+
+    if (!session?.user?.id) {
+      setError('Nicht eingeloggt. Bitte versuche es erneut.')
       return
     }
 
@@ -74,14 +99,41 @@ export function ImagesStep({ onBack }: OnboardingStepProps) {
       const { error: profileError } = await supabase
         .from('Profile')
         .insert([{
-          'User-ID': session?.user?.id,
+          'User-ID': session.user.id,
           name,
           major,
-          bio,
-          interests
+          description: bio,
+          tags: interests
         }])
 
       if (profileError) throw profileError
+
+      const { data: profile, error: fetchError } = await supabase
+        .from('Profile')
+        .select('P-ID')
+        .eq('User-ID', session.user.id)
+        .single()
+        .returns<{'P-ID': number}>()
+
+      if (fetchError || !profile) {
+        throw new Error('Profile not found after creation')
+      }
+
+      // Upload images
+      for (const image of images) {
+        if (!image.base64) {
+          console.error('Missing base64 for image:', image)
+          continue
+        }
+
+        console.log("image upload", image)
+        
+        await uploadImage({
+          base64Image: image.base64,
+          userId: session.user.id,
+          profileId: profile['P-ID']
+        })
+      }
 
       // Clear onboarding data
       await AsyncStorage.multiRemove([
@@ -94,6 +146,7 @@ export function ImagesStep({ onBack }: OnboardingStepProps) {
       await refreshProfile()
       router.replace('/(auth)/home')
     } catch (e) {
+      console.error('Error completing onboarding:', e)
       setError('Ein Fehler ist aufgetreten. Bitte versuche es erneut.')
     } finally {
       setLoading(false)
@@ -102,9 +155,7 @@ export function ImagesStep({ onBack }: OnboardingStepProps) {
 
   return (
     <OnboardingScreenLayout
-      currentStep={5}
-      totalSteps={5}
-      title="Füge einige"
+      title="Füge ein paar"
       subtitle="Bilder hinzu"
       onNext={handleComplete}
       onBack={onBack}
@@ -112,9 +163,9 @@ export function ImagesStep({ onBack }: OnboardingStepProps) {
       error={error}
       buttonText="Fertig"
       buttonDisabled={images.length < IMAGE_LIMITS.MIN_IMAGES}
-      hint={`Füge mindestens ${IMAGE_LIMITS.MIN_IMAGES} Bilder hinzu`}
+      hint={`${images.length}/${IMAGE_LIMITS.MAX_IMAGES} · Wähle mindestens ${IMAGE_LIMITS.MIN_IMAGES} Bilder`}
     >
-      <ScrollView style={styles.container}>
+      <View style={styles.container}>
         <View style={styles.imageGrid}>
           {images.map((image, index) => (
             <View key={index} style={styles.imageContainer}>
@@ -137,7 +188,7 @@ export function ImagesStep({ onBack }: OnboardingStepProps) {
             </TouchableOpacity>
           )}
         </View>
-      </ScrollView>
+      </View>
     </OnboardingScreenLayout>
   )
 }
@@ -150,12 +201,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 10,
-    padding: 10,
+    justifyContent: 'flex-start',
+    paddingVertical: 10,
   },
   imageContainer: {
-    width: '48%',
-    aspectRatio: 4/5,
+    width: '31%',
+    aspectRatio: 4/6,
     position: 'relative',
+
   },
   image: {
     width: '100%',
@@ -164,23 +217,27 @@ const styles = StyleSheet.create({
   },
   removeButton: {
     position: 'absolute',
-    top: 8,
-    right: 8,
+    top: -8,
+    right: -4,
     width: 24,
     height: 24,
-    borderRadius: 12,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 20,
+    backgroundColor: colors.background.primary,
+    borderColor: colors.accent.secondary,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
   removeButtonText: {
-    color: colors.text.light,
+    color: colors.accent.secondary,
     fontSize: 18,
+    fontWeight: 400,
     lineHeight: 20,
   },
   addButton: {
-    width: '48%',
-    aspectRatio: 4/5,
+    width: '31%',
+    minHeight: 160,
+    aspectRatio: 4/6,
     backgroundColor: colors.background.secondary,
     borderRadius: 12,
     alignItems: 'center',
@@ -188,6 +245,6 @@ const styles = StyleSheet.create({
   },
   addButtonText: {
     fontSize: 32,
-    color: colors.text.secondary,
+    color: colors.accent.secondary,
   },
 }) 
