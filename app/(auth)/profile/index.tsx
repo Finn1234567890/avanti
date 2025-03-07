@@ -72,16 +72,16 @@ export default function Profile() {
           style: 'destructive',
           onPress: async () => {
             try {
-              const { error } = await supabase
-                .from('Users')
-                .delete()
-                .eq('id', session?.user?.id)
-
+              const { error } = await supabase.rpc('delete_user_account')
+              
               if (error) throw error
-              signOut()
-            } catch (error) {
-              console.error('Error deleting account:', error)
-              Alert.alert('Error', 'Failed to delete account')
+
+              // Account deleted successfully, sign out
+              await signOut()
+              router.replace('/(public)/register')
+            } catch (e) {
+              console.error('Error deleting account:', e)
+              Alert.alert('Error', 'Failed to delete account. Please try again.')
             }
           }
         }
@@ -140,16 +140,16 @@ export default function Profile() {
             
           </View>
 
-          <View style={styles.buttons}>
+          <View style={styles.buttonContainer}>
             <TouchableOpacity 
-              style={[styles.button, styles.logoutButton]}
+              style={[styles.button, styles.logoutButton]} 
               onPress={handleSignOut}
             >
               <Text style={styles.buttonText}>Logout</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
-              style={[styles.button, styles.deleteButton]}
+              style={[styles.button, styles.deleteButton]} 
               onPress={handleDeleteAccount}
             >
               <Text style={styles.buttonText}>Delete Account</Text>
@@ -203,13 +203,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
   },
-  buttons: {
-    padding: 20,
+  buttonContainer: {
+    padding: 16,
     gap: 12,
   },
   button: {
-    paddingVertical: 12,
-    borderRadius: 20,
+    padding: 15,
+    borderRadius: 8,
     alignItems: 'center',
   },
   logoutButton: {

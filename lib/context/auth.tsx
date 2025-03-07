@@ -10,9 +10,8 @@ export type AuthContextType = {
   loading: boolean
   hasProfile: boolean
   refreshProfile: () => Promise<void>
-  signUp: (password: string, phone: string) => Promise<{ error: Error | null }>
-  sendVerificationCode: (phone: string) => Promise<{ error: Error | null }>
-  verifyPhone: (phone: string, code: string) => Promise<{ error: Error | null }>
+  signUp: (email: string, password: string) => Promise<{ error: Error | null }>
+  signIn: (email: string, password: string) => Promise<{ error: Error | null }>
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -21,9 +20,8 @@ const AuthContext = createContext<AuthContextType>({
   hasProfile: false,
   refreshProfile: async () => {},
   signOut: async () => {},
-  sendVerificationCode: async () => ({ error: null }),
-  verifyPhone: async () => ({ error: null }),
   signUp: async () => ({ error: null }),
+  signIn: async () => ({ error: null }),
 })
 
 function useProtectedRoute(session: Session | null, hasProfile: boolean, loading: boolean) {
@@ -46,7 +44,7 @@ function useProtectedRoute(session: Session | null, hasProfile: boolean, loading
     if (!hasProfile) {
       // Logged in but no profile - must complete onboarding
       if (isAuthGroup) {
-        router.replace('/(public)/onboarding/name')
+        router.replace('/(public)/onboarding/phone')
       }
       return
     }
@@ -129,14 +127,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useProtectedRoute(session, hasProfile, loading)
 
-  const sendVerificationCode = async (phone: string) => {
+  const signUp = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithOtp({
-        phone,
-        options: {
-          shouldCreateUser: true,
-          channel: 'sms'
-        }
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
       })
       return { error }
     } catch (error) {
@@ -144,12 +139,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const verifyPhone = async (phone: string, code: string) => {
+  const signIn = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.verifyOtp({
-        phone,
-        token: code,
-        type: 'sms'
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       })
       return { error }
     } catch (error) {
@@ -162,11 +156,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loading,
     hasProfile,
     refreshProfile,
-    signOut: async () => {},
-    sendVerificationCode,
-    verifyPhone,
-    signUp: async () => ({ error: null }),
-    verifyAndSignUp: async () => ({ error: null }),
+    signOut: async () => {
+      await supabase.auth.signOut()
+    },
+    signUp,
+    signIn,
   }
 
   if (initializing) {

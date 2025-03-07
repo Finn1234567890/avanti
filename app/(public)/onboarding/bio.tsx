@@ -8,8 +8,8 @@ import { OnboardingLayout } from '../../../components/OnboardingLayout'
 import { onboardingStyles as styles } from '../../../lib/styles/onboarding'
 import { ProfileData } from '../../../lib/types/profile'
 
-const TOTAL_STEPS = 4
-const CURRENT_STEP = 4
+const TOTAL_STEPS = 6 
+const CURRENT_STEP = 5
 
 export default function OnboardingBio() {
   const { session, refreshProfile } = useAuth()

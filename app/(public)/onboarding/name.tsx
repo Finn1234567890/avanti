@@ -5,8 +5,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import { OnboardingLayout } from '../../../components/OnboardingLayout'
 import { onboardingStyles as styles } from '../../../lib/styles/onboarding'
 
-const TOTAL_STEPS = 4
-const CURRENT_STEP = 1
+const TOTAL_STEPS = 6
+const CURRENT_STEP = 2 
 
 export default function OnboardingName() {
   const [name, setName] = useState('')

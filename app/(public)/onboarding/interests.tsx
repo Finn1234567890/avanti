@@ -6,8 +6,8 @@ import { OnboardingLayout } from '../../../components/OnboardingLayout'
 import { onboardingStyles as styles } from '../../../lib/styles/onboarding'
 import { INTERESTS } from '../../../lib/utils/constants'
 
-const TOTAL_STEPS = 4
-const CURRENT_STEP = 3
+const TOTAL_STEPS = 6
+const CURRENT_STEP = 4
 
 
 

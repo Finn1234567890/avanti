@@ -1,8 +1,10 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity } from 'react-native'
 import { ImageGrid } from './ImageGrid'
 import type { FullProfileData } from '../types'
 import { IMAGE_LIMITS, INTERESTS } from '../../../../lib/utils/constants'
+import { useAuth } from '../../../../lib/context/auth'
+import { supabase } from '../../../../lib/supabase/supabase'
 
 type EditScreenProps = {
   profile: FullProfileData | null
@@ -17,6 +19,27 @@ export function EditScreen({
   onImagePick,
   onProfileUpdate 
 }: EditScreenProps) {
+  const [phoneNumber, setPhoneNumber] = useState<string | null>(null)
+  const { session } = useAuth()
+
+  useEffect(() => {
+    const fetchPhoneNumber = async () => {
+      if (!session?.user?.id) return
+
+      const { data, error } = await supabase
+        .from('PhoneNumbers')
+        .select('phone_number')
+        .eq('User-ID', session.user.id)
+        .single()
+
+      if (!error && data) {
+        setPhoneNumber(data.phone_number)
+      }
+    }
+
+    fetchPhoneNumber()
+  }, [session?.user?.id])
+
   if (!profile) return null
 
   const handleInterestToggle = (interest: string) => {
@@ -48,12 +71,18 @@ export function EditScreen({
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>BASIC INFO</Text>
         <View style={styles.inputContainer}>
+          <Text style={styles.label}>Phone</Text>
+          <View style={styles.phoneContainer}>
+            <Text style={styles.phoneText}>{phoneNumber || 'Loading...'}</Text>
+          </View>
+        </View>
+        <View style={styles.inputContainer}>
           <Text style={styles.label}>Name</Text>
           <TextInput
             style={styles.input}
             value={profile.name}
             onChangeText={(text) => onProfileUpdate({ name: text })}
-            placeholder="Your name"
+            placeholder="Enter your name"
           />
         </View>
         <View style={styles.inputContainer}>
@@ -190,5 +219,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     marginTop: 4,
+  },
+  phoneContainer: {
+    padding: 15,
+    paddingLeft: 0,
+    borderRadius: 5,
+    backgroundColor: '#ffffff',
+  },
+  phoneText: {
+    fontSize: 16,
+    color: '#666',
   },
 }) 

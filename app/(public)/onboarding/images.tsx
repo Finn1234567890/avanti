@@ -17,8 +17,8 @@ type ImageInfo = {
   type: string | null
 }
 
-const TOTAL_STEPS = 4
-const CURRENT_STEP = 4
+const TOTAL_STEPS = 6
+const CURRENT_STEP = 6
 
 
 async function uriToBase64(uri: string): Promise<string> {

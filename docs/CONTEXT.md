@@ -338,3 +338,34 @@ assets/                   # Static assets
 - Phone verification required (will be implemented using Twilio)
 - Email verification not required
 - Users must complete onboarding after registration
+
+# Authentication Flow
+
+## Registration
+1. User signs up with:
+   - Email (for account management)
+   - Password
+   - Name (for profile)
+
+2. After signup:
+   - Create Profile entry
+   - Collect phone number as profile data
+   - Store phone in Profile table with privacy controls
+
+## Login
+- Simple email + password authentication
+- No SMS verification needed for login
+
+## Phone Number Handling
+- Phone numbers stored in Profile table
+- Row Level Security ensures:
+  - Users can see their own phone number
+  - Users can only see phone numbers of accepted friends
+  - Phone numbers hidden from non-friends
+
+## Benefits
+1. Simpler authentication flow
+2. Easier testing and development
+3. Lower costs (no SMS for auth)
+4. Better privacy control
+5. Still maintains phone number sharing functionality

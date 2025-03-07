@@ -14,12 +14,11 @@ export type FriendshipWithProfile = {
   'receiver-ID': string
   requester: {
     name: string
-    phone?: string
   }
   receiver: {
     name: string
-    phone?: string
   }
+  displayedPhone?: string
 }
 
 export default function Friends() {
@@ -56,33 +55,31 @@ export default function Friends() {
       data.forEach(async (friendship) => {
         const requesterId: string = friendship['requester-ID']
         const receiverId = friendship['receiver-ID']
-        
-        const {data: requesterName, error: requesterNameError} = await supabase
+
+        const { data: requesterName, error: requesterNameError } = await supabase
           .from('Profile')
           .select('name')
           .eq('User-ID', requesterId)
           .single()
 
-        if(requesterNameError) throw requesterNameError
+        if (requesterNameError) throw requesterNameError
 
-        const {data: receiverName, error: receiverNameError} = await supabase
+        const { data: receiverName, error: receiverNameError } = await supabase
           .from('Profile')
           .select('name')
           .eq('User-ID', receiverId)
           .single()
-        
-        if(receiverNameError) throw receiverNameError
-        
-        let friendPhone = null
-        if (friendship.status === 'accepted') {
+
+        if (receiverNameError) throw receiverNameError
+
+
+        if (requesterName && receiverName) {
+
           const friendId = session.user.id === requesterId ? receiverId : requesterId
-          const { data: phoneNumber } = await supabase.rpc('get_friend_phone_number', {
-            friend_id: friendId
-          })
-          friendPhone = phoneNumber
-        }
-        
-        if(requesterName && receiverName) {
+          const phoneNumber = await getPhoneNumber(friendId)
+
+          console.log("Phone Number: ", phoneNumber)
+
           const friendshipData: FriendshipWithProfile = {
             'friendship-id': data[0]['friendship-id'],
             status: data[0]!.status,
@@ -90,18 +87,17 @@ export default function Friends() {
             'receiver-ID': data[0]['receiver-ID'],
             requester: {
               name: requesterName.name,
-              phone: session.user.id === receiverId ? friendPhone : undefined
             },
             receiver: {
               name: receiverName.name,
-              phone: session.user.id === requesterId ? friendPhone : undefined
-            }
+            },
+            displayedPhone: phoneNumber
           }
 
           setFriendships(friendships => [...friendships, friendshipData])
         }
       })
-      
+
 
     } catch (error) {
       console.error('Error loading friendships:', error)
@@ -109,6 +105,18 @@ export default function Friends() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const getPhoneNumber = async (friendId: string) => {
+    const { data: phoneData, error: phoneError } = await supabase
+      .from('PhoneNumbers')
+      .select('phone_number')
+      .eq('User-ID', friendId)
+      .single()
+
+    if (phoneError) return undefined
+
+    return phoneData?.phone_number
   }
 
   const handleAccept = async (friendshipId: string) => {
@@ -163,7 +171,7 @@ export default function Friends() {
   const onRefresh = React.useCallback(async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
     setRefreshing(true)
-    setFriendships([]) 
+    setFriendships([])
     await loadFriendships()
     setRefreshing(false)
   }, [])
@@ -176,20 +184,20 @@ export default function Friends() {
       <View style={styles.friendItem}>
         <View style={styles.friendInfo}>
           <Text style={styles.name}>{profile.name}</Text>
-          {item.status === 'accepted' && profile.phone && (
-            <Text style={styles.phone}>{profile.phone}</Text>
+          {item.status === 'accepted' && item.displayedPhone && (
+            <Text style={styles.phone}>{item.displayedPhone}</Text>
           )}
           {item.status === 'pending' && (
             <View style={styles.actionButtons}>
               {!isRequester ? (
                 <>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={[styles.button, styles.acceptButton]}
                     onPress={() => handleAccept(item['friendship-id'])}
                   >
                     <Text style={styles.buttonText}>Accept</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={[styles.button, styles.declineButton]}
                     onPress={() => handleDecline(item['friendship-id'])}
                   >
@@ -197,7 +205,7 @@ export default function Friends() {
                   </TouchableOpacity>
                 </>
               ) : (
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={[styles.button, styles.declineButton]}
                   onPress={() => handleDecline(item['friendship-id'])}
                 >
@@ -207,7 +215,7 @@ export default function Friends() {
             </View>
           )}
           {item.status === 'accepted' && (
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.button, styles.declineButton]}
               onPress={() => handleDecline(item['friendship-id'])}
             >
@@ -223,19 +231,19 @@ export default function Friends() {
     <SafeAreaWrapper>
       <View style={styles.container}>
         <View style={styles.tabs}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.tab, activeTab === 'friends' && styles.activeTab]}
             onPress={() => setActiveTab('friends')}
           >
             <Text style={styles.tabText}>Friends</Text>
           </TouchableOpacity>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.tab, activeTab === 'incoming' && styles.activeTab]}
             onPress={() => setActiveTab('incoming')}
           >
             <Text style={styles.tabText}>Incoming</Text>
           </TouchableOpacity>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.tab, activeTab === 'outgoing' && styles.activeTab]}
             onPress={() => setActiveTab('outgoing')}
           >
