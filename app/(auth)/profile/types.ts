@@ -1,4 +1,4 @@
-export type Profile = {
+export type ProfileEntry = {
   name: string
   major: string
   'P-ID': number
@@ -8,7 +8,7 @@ export type Profile = {
   created_at: string
 }
 
-export type FullProfileData = Profile & {
+export type FullProfileData = ProfileEntry & {
   images: { 
     url: string
     publicUrl: string 

@@ -3,6 +3,7 @@ import * as Haptics from 'expo-haptics'
 import Ionicons from '@expo/vector-icons/Ionicons'
 import { Platform } from 'react-native'
 import { colors } from '../../lib/theme/colors'
+import { FontAwesome5 } from '@expo/vector-icons'
 
 export default function AuthLayout() {
   const handleTabPress = () => {
@@ -40,9 +41,9 @@ export default function AuthLayout() {
       <Tabs.Screen
         name="home/index"
         options={{
-          title: 'Feed',
+          title: 'Studenten',
           tabBarIcon: ({ color }) => (
-            <Ionicons name="rocket" size={25} color={color} />
+            <FontAwesome5 name="user-graduate" size={25} color={color} />
           ),
         }}
       />

@@ -1,4 +1,4 @@
-import { View, Text, Image, TouchableOpacity, StyleSheet, Dimensions, Alert } from 'react-native'
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Alert } from 'react-native'
 import { Profile } from '../types'
 import { ImageIndicators } from './ImageIndicators'
 import { supabase } from '../../../../lib/supabase/supabase'
@@ -7,28 +7,30 @@ import { useState, useEffect } from 'react'
 import * as Haptics from 'expo-haptics'
 import { colors } from '../../../../lib/theme/colors'
 import { LinearGradient } from 'expo-linear-gradient'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { GestureResponderEvent } from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
+import { openMessaging } from '../../../../lib/utils/messaging'
+import { Image as ExpoImage } from 'expo-image'
 
-const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window')
-const CARD_MARGIN = 16 // Margin from screen edges
-const CARD_WIDTH = SCREEN_WIDTH - (CARD_MARGIN * 2) // Card width with margins
+const SCREEN_HEIGHT = Dimensions.get('window').height
 
-type ProfileCardProps = {
-  profile: Profile
-  isActive: boolean
-  onImagePress: (profileId: string, imagesLength: number) => void
-}
 
-export function ProfileCard({ profile, isActive, onImagePress }: ProfileCardProps) {
+export function ProfileCard({ profile, preview }: { profile: Profile, preview: boolean }) {
   const { session } = useAuth()
   const [connectionStatus, setConnectionStatus] = useState<string | null>(null)
   const hasMultipleImages = profile.images && profile.images.length > 1
-  const insets = useSafeAreaInsets()
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
 
   useEffect(() => {
-    checkExistingConnection()
+    checkExistingConnection() 
+    
+    if (profile.images) {
+      profile.images.forEach(img => {
+        ExpoImage.prefetch(img.url)
+      })
+    }
   }, [])
+
 
   const checkExistingConnection = async () => {
     try {
@@ -48,16 +50,6 @@ export function ProfileCard({ profile, isActive, onImagePress }: ProfileCardProp
     }
   }
 
-  const getButtonText = () => {
-    switch (connectionStatus) {
-      case 'pending':
-        return 'Pending'
-      case 'accepted':
-        return 'Connected'
-      default:
-        return 'Connect'
-    }
-  }
 
   const handleConnect = async () => {
     try {
@@ -65,6 +57,22 @@ export function ProfileCard({ profile, isActive, onImagePress }: ProfileCardProp
         Haptics.NotificationFeedbackType.Success
       )
       if (!session?.user?.id) return
+
+      if(connectionStatus === 'pending') {
+        const { error } = await supabase
+          .from('Friendships')
+          .update({
+            status: 'accepted'
+          })
+          .eq('requester-ID', profile['User-ID'])
+          .eq('receiver-ID', session.user.id)
+
+        if (error) throw error
+
+        setConnectionStatus('accepted')
+        Alert.alert('Success', 'Connection request accepted!')
+        return
+      }
 
       const { error } = await supabase
         .from('Friendships')
@@ -88,85 +96,216 @@ export function ProfileCard({ profile, isActive, onImagePress }: ProfileCardProp
     }
   }
 
-  const handleImageTap = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
-    onImagePress(profile['P-ID'], profile.images.length)
+  const handleMessage = async () => {
+    try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+      
+      if (profile) {
+        Alert.alert('Error', 'No phone number available')
+        return
+      }
+
+      // Try WhatsApp first, fallback to SMS
+      await openMessaging('whatsapp', "+4917658875279", session?.user?.user_metadata?.name || 'Someone')
+    } catch (error) {
+      console.error('Error opening messaging:', error)
+    }
   }
 
-  return (
-    <View style={[
-      styles.profileCard
-    ]}>
-      <TouchableOpacity
-        activeOpacity={0.95}
-        onPress={handleImageTap}
-        disabled={!hasMultipleImages}
-        style={styles.imageContainer}
-      >
-        {profile.images && profile.images.length > 0 && (
-          <View>
-            <Image 
-              source={{ uri: profile.images[currentImageIndex].url }}
-              style={styles.profileImage}
-            />
-            {hasMultipleImages && (
-              <ImageIndicators 
-                total={profile.images.length} 
-                current={currentImageIndex} 
-              />
-            )}
-            <LinearGradient
-              colors={[
-                'transparent',
-                'rgba(0,0,0,0.4)',
-                'rgba(0,0,0,0.8)'
-              ]}
-              style={styles.gradient}
-            >
-              <View style={styles.profileInfo}>
-                <View style={styles.headerContainer}>
-                  <View style={styles.nameContainer}>
-                    <Text style={styles.name}>{profile.name}</Text>
-                    <Text style={styles.major}>{profile.major}</Text>
-                  </View>
-                  
-                  <TouchableOpacity 
-                    style={[
-                      styles.connectButton,
-                      connectionStatus && styles.connectButtonDisabled
-                    ]}
-                    onPress={handleConnect}
-                    disabled={!!connectionStatus}
-                  >
-                    <Text style={styles.connectButtonText}>{getButtonText()}</Text>
-                  </TouchableOpacity>
-                </View>
+  const handleImageTap = (event: GestureResponderEvent) => {
+    if (!hasMultipleImages) return
+    
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+    
+    // Get tap position relative to screen width
+    const tapX = event.nativeEvent.locationX
+    const screenWidth = Dimensions.get('window').width
+    const isRightSide = tapX > screenWidth / 2
 
-                <View style={styles.tagsContainer}>
-                  {profile.tags.map((tag, index) => (
-                    <View key={index} style={styles.tag}>
-                      <Text style={styles.tagText}>{tag}</Text>
-                    </View>
-                  ))}
-                </View>
+    setCurrentImageIndex(prev => {
+      if (isRightSide) {
+        // Cycle forward
+        return (prev + 1) % profile.images.length
+      } else {
+        // Cycle backward
+        return prev === 0 ? profile.images.length - 1 : prev - 1
+      }
+    })
+  }
 
-                <Text style={styles.bio} numberOfLines={3}>
-                  {profile.description}
-                </Text>
-              </View>
-            </LinearGradient>
+  const renderFirstScreen = () => (
+    <LinearGradient
+      colors={[
+        'transparent',
+        'rgba(0,0,0,0.4)',
+        'rgba(0,0,0,0.8)'
+      ]}
+      style={styles.gradient}
+    >
+      <View style={styles.profileInfo}>
+        <View style={styles.headerContainer}>
+          <View style={styles.nameContainer}>
+            <Text style={styles.name}>{profile.name}</Text>
+            {renderMajorWithIcon()}
           </View>
+        </View>
+
+        <Text style={styles.bio} numberOfLines={8}>
+          {profile.description}
+        </Text>
+      </View>
+    </LinearGradient>
+  )
+
+  const renderSecondScreen = () => (
+    <LinearGradient
+      colors={[
+        'transparent',
+        'rgba(0,0,0,0.4)',
+        'rgba(0,0,0,0.8)'
+      ]}
+      style={styles.gradient}
+    >
+      <View style={styles.profileInfo}>
+        <View style={styles.headerContainer}>
+          <View style={styles.nameContainer}>
+            <Text style={styles.name}>{profile.name}</Text>
+            {renderMajorWithIcon()}
+          </View>
+        </View>
+
+        <View style={styles.tagsContainer}>
+          {profile.tags.map((tag, index) => (
+            <View key={index} style={styles.tag}>
+              <Text style={styles.tagText}>{tag}</Text>
+            </View>
+          ))}
+        </View>
+      </View>
+    </LinearGradient>
+  )
+
+  const renderOtherScreens = () => (
+    <LinearGradient
+      colors={[
+        'transparent',
+        'rgba(0,0,0,0.4)',
+        'rgba(0,0,0,0.8)'
+      ]}
+      style={styles.gradient}
+    >
+      <View style={styles.profileInfo}>
+        <View style={styles.headerContainer}>
+          <View style={styles.nameContainer}>
+            <Text style={styles.name}>{profile.name}</Text>
+            {renderMajorWithIcon()}
+          </View>
+        </View>
+
+        <View style={styles.tagsContainer}>
+          
+        </View>
+      </View>
+    </LinearGradient>
+  )
+
+  const renderMajorWithIcon = () => (
+    <View style={styles.majorContainer}>
+      <Ionicons 
+        name="school" 
+        size={18} 
+        color={colors.accent.secondary} 
+        style={styles.majorIcon} 
+      />
+      <Text style={styles.major}>{profile.major}</Text>
+    </View>
+  )
+
+  return (
+    <View style={styles.cardContainer}>
+      <View style={styles.profileCard}>
+        <TouchableOpacity
+          activeOpacity={0.95}
+          onPress={handleImageTap}
+          style={styles.imageContainer}
+        >
+          {profile.images && profile.images.length > 0 && (
+            <View>
+              <ExpoImage 
+                source={{ uri: profile.images[currentImageIndex].url }}
+                style={styles.profileImage}
+                contentFit="cover"
+                transition={200}
+                cachePolicy="memory-disk"
+              />
+              {/* Remove button from header gradient */}
+              <LinearGradient
+                colors={[
+                  'rgba(0,0,0,0.6)',
+                  'rgba(0,0,0,0.3)',
+                  'transparent'
+                ]}
+                style={styles.headerGradient}
+              />
+              {hasMultipleImages && (
+                <ImageIndicators 
+                  total={profile.images.length} 
+                  current={currentImageIndex} 
+                />
+              )}
+              {currentImageIndex !== 0 
+                ? (currentImageIndex !== 1 
+                  ? renderOtherScreens() 
+                  : renderSecondScreen()) 
+                : renderFirstScreen()}
+            </View>
+          )}
+        </TouchableOpacity>
+        
+        {/* Floating connect button */}
+        {!preview && (
+          <TouchableOpacity 
+          style={[
+            styles.connectButton,
+            connectionStatus === 'accepted' && styles.messageButton,
+            connectionStatus === 'pending' && styles.connectButtonDisabled
+          ]}
+          onPress={connectionStatus === 'accepted' ? handleMessage : handleConnect}
+          disabled={connectionStatus === 'pending'}
+        >
+          <Ionicons 
+            name={
+              connectionStatus === 'accepted' 
+                ? "chatbubble-outline" 
+                : connectionStatus === 'pending' 
+                  ? "checkmark" 
+                  : "person-add"
+            } 
+            size={28} 
+            color={
+              connectionStatus === 'accepted'
+                ? colors.text.light
+                : connectionStatus === 'pending'
+                  ? colors.accent.secondary
+                  : colors.text.light
+            } 
+          />
+        </TouchableOpacity>
         )}
-      </TouchableOpacity>
+        
+      </View>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
+  cardContainer: {
+    height: SCREEN_HEIGHT - 195,
+    paddingVertical: 10,
+  },
   profileCard: {
     backgroundColor: colors.background.primary,
     marginHorizontal: 10,
-    marginTop: 10,
     borderRadius: 40,
     overflow: 'hidden',
     shadowColor: '#000',
@@ -174,8 +313,7 @@ const styles = StyleSheet.create({
       width: 0,
       height: 2,
     },
-    height: SCREEN_HEIGHT * 0.75,
-    marginBottom: SCREEN_HEIGHT * 0.1,
+    height: '100%',
     shadowOpacity: 0.15,
     shadowRadius: 8,
     elevation: 5,
@@ -206,6 +344,7 @@ const styles = StyleSheet.create({
     paddingBottom: 30,
   },
   headerContainer: {
+    width: '100%',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
@@ -220,13 +359,22 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.text.light,
   },
+  majorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  majorIcon: {
+    marginRight: 6,
+    opacity: 0.9,
+  },
   major: {
     fontSize: 18,
     color: colors.text.light,
     opacity: 0.9,
-    marginTop: 4,
   },
   tagsContainer: {
+    width: '80%',
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
@@ -244,25 +392,48 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   bio: {
-    fontSize: 16,
+    width: '85%',
+    fontSize: 14,
     color: colors.text.light,
     opacity: 0.9,
+    fontWeight: '300',
     lineHeight: 24,
   },
   connectButton: {
+    position: 'absolute',
+    bottom: 15,
+    right: 15,
     backgroundColor: colors.accent.primary,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    alignSelf: 'flex-start',
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+    zIndex: 10,
   },
   connectButtonDisabled: {
+    borderWidth: 2,
+    borderColor: colors.accent.secondary,
     backgroundColor: colors.background.secondary,
-    opacity: 0.8,
+    opacity: 0.9,
   },
-  connectButtonText: {
-    color: colors.text.light,
-    fontSize: 14,
-    fontWeight: '600',
-  }
+  headerGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 120,
+    justifyContent: 'flex-start',
+  },
+  messageButton: {
+    backgroundColor: colors.accent.secondary,
+  },
 }) 

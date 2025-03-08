@@ -27,7 +27,7 @@ export default function Home() {
   const [page, setPage] = useState(0)
   const [hasMore, setHasMore] = useState(true)
   const viewabilityConfig = useRef({
-    itemVisiblePercentThreshold: 50
+    itemVisiblePercentThreshold: 10
   })
   const [refreshing, setRefreshing] = useState(false)
   const insets = useSafeAreaInsets()
@@ -162,15 +162,16 @@ export default function Home() {
           renderItem={({ item, index }) => (
             <ProfileCard
               profile={item}
-              isActive={index === currentIndex}
-              onImagePress={handleImagePress}
+              preview={false}
             />
           )}
           pagingEnabled
-          snapToInterval={SCREEN_HEIGHT}
+          snapToInterval={SCREEN_HEIGHT - 112}
           decelerationRate="fast"
           viewabilityConfig={viewabilityConfig.current}
           onViewableItemsChanged={onViewableItemsChanged}
+          onEndReached={handleEndReached}
+          onEndReachedThreshold={0.5}
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl

@@ -1,6 +1,7 @@
 import React from 'react'
 import { View, StyleSheet, Image, TouchableOpacity, Text } from 'react-native'
 import * as Haptics from 'expo-haptics'
+import { colors } from '../../../../lib/theme/colors'
 
 type Props = {
   images: { url: string, publicUrl: string }[]
@@ -58,44 +59,50 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    padding: 8,
-    gap: 8,
+    gap: 10,
+    justifyContent: 'flex-start',
+    paddingVertical: 10,
   },
   imageContainer: {
     width: '31%',
-    aspectRatio: 0.8,
+    aspectRatio: 4/6,
     position: 'relative',
   },
   image: {
     width: '100%',
     height: '100%',
-    borderRadius: 8,
+    borderRadius: 12,
   },
   deleteButton: {
     position: 'absolute',
-    top: 4,
-    right: 4,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    top: -8,
+    right: -4,
     width: 24,
     height: 24,
-    borderRadius: 12,
+    borderRadius: 20,
+    backgroundColor: colors.background.primary,
+    borderColor: colors.accent.secondary,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
   deleteButtonText: {
-    color: '#fff',
+    color: colors.accent.secondary,
     fontSize: 18,
+    fontWeight: '400',
+    lineHeight: 20,
   },
   addButton: {
     width: '31%',
-    aspectRatio: 0.8,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 8,
+    minHeight: 160,
+    aspectRatio: 4/6,
+    backgroundColor: colors.background.secondary,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
   addButtonText: {
     fontSize: 32,
-    color: '#666',
+    color: colors.accent.secondary,
   },
 }) 

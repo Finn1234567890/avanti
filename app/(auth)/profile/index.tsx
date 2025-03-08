@@ -5,16 +5,90 @@ import { supabase } from '../../../lib/supabase/supabase'
 import { SafeAreaWrapper } from '../../../components/SafeAreaWrapper'
 import { router } from 'expo-router'
 import { EditProfile } from './edit'
-import type { Profile, FullProfileData } from './types'
+import { Image as ExpoImage } from 'expo-image'
+import { Ionicons } from '@expo/vector-icons'
+import { LinearGradient } from 'expo-linear-gradient'
+import { colors } from '../../../lib/theme/colors'
+import type { ProfileEntry, FullProfileData } from './types'
+import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
+import { ViewMode } from './edit';
+type StatCardProps = {
+  icon: keyof typeof Ionicons.glyphMap
+  title: string
+  value: string
+  action: string
+  color: string
+  onPress: () => void
+}
+
+const StatCard = ({ icon, title, value, action, color, onPress }: StatCardProps) => (
+  <TouchableOpacity onPress={onPress}>
+    <LinearGradient
+      colors={[colors.accent.primary, colors.accent.secondary]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 0 }}
+      style={styles.statCard}
+    >
+      <View style={styles.statHeader}>
+        <Text style={styles.statTitle}>{title}</Text>
+        <Text style={styles.statAction}>{action}
+        </Text>
+        
+      </View>
+      <View style={styles.statContent}>
+        <View style={styles.iconContainer}>
+          <Ionicons name={icon} size={22} color={colors.text.light} />
+        </View>
+        <Text style={styles.statValue}>{value}</Text>
+        
+      </View>
+    </LinearGradient>
+  </TouchableOpacity>
+)
+
+type MenuItemProps = {
+  icon: keyof typeof Ionicons.glyphMap
+  title: string
+  onPress: () => void
+  color?: string
+  isDelete?: boolean
+}
+
+const MenuItem = ({ icon, title, onPress, color = colors.text.primary, isDelete }: MenuItemProps) => (
+  <TouchableOpacity 
+    style={[
+      styles.menuItem,
+      isDelete && styles.deleteMenuItem
+    ]} 
+    onPress={onPress}
+  >
+    <LinearGradient
+      colors={isDelete ? ['#FE3C72', '#FF2D55'] : [colors.background.secondary, colors.background.secondary]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 0 }}
+      style={StyleSheet.absoluteFill}
+    />
+    <Ionicons name={icon} size={24} color={isDelete ? colors.text.light : color} />
+    <Text style={[styles.menuTitle, { color: isDelete ? colors.text.light : color }]}>{title}</Text>
+    <Ionicons 
+      name="chevron-forward" 
+      size={24} 
+      color={isDelete ? colors.text.light : colors.text.secondary} 
+    />
+  </TouchableOpacity>
+)
 
 export default function Profile() {
   const { session, signOut } = useAuth()
   const [profile, setProfile] = useState<FullProfileData | null>(null)
   const [isEditing, setIsEditing] = useState(false)
+  const [viewMode, setViewMode] = useState<ViewMode>('edit')
   const [loading, setLoading] = useState(true)
+  const [friendshipCount, setFriendshipCount] = useState(0)
 
   useEffect(() => {
     loadProfile()
+    loadFriendshipCount()
   }, [])
 
   const loadProfile = async () => {
@@ -27,7 +101,7 @@ export default function Profile() {
         .select('tags, name, major, P-ID, User-ID, created_at, description')
         .eq('User-ID', session.user.id)
         .single()
-        .returns<Profile>()
+        .returns<ProfileEntry>()
 
       if (error) throw error
 
@@ -61,6 +135,24 @@ export default function Profile() {
     }
   }
 
+  const loadFriendshipCount = async () => {
+    try {
+      if (!session?.user?.id) return
+
+      const { data, error } = await supabase
+        .from('Friendships')
+        .select('*')
+        .or(`requester-ID.eq.${session.user.id},receiver-ID.eq.${session.user.id}`)
+        .eq('status', 'accepted')
+
+      if (error) throw error
+      console.log("Friendships", data)
+      setFriendshipCount(data?.length || 0)
+    } catch (error) {
+      console.error('Error loading friendship count:', error)
+    }
+  }
+
   const handleDeleteAccount = async () => {
     Alert.alert(
       'Delete Account',
@@ -72,16 +164,16 @@ export default function Profile() {
           style: 'destructive',
           onPress: async () => {
             try {
-              const { error } = await supabase.rpc('delete_user_account')
-              
-              if (error) throw error
+              const { error } = await supabase
+                .from('Users')
+                .delete()
+                .eq('id', session?.user?.id)
 
-              // Account deleted successfully, sign out
-              await signOut()
-              router.replace('/(public)/welcome')
-            } catch (e) {
-              console.error('Error deleting account:', e)
-              Alert.alert('Error', 'Failed to delete account. Please try again.')
+              if (error) throw error
+              signOut()
+            } catch (error) {
+              console.error('Error deleting account:', error)
+              Alert.alert('Error', 'Failed to delete account')
             }
           }
         }
@@ -95,7 +187,7 @@ export default function Profile() {
       if (error) throw error
       
       await signOut()
-      router.replace('/(public)/welcome')
+      router.replace('/(public)')
     } catch (error) {
       console.error('Error signing out:', error)
       Alert.alert('Error', 'Failed to sign out')
@@ -107,55 +199,89 @@ export default function Profile() {
       {isEditing ? (
         <EditProfile 
           profile={profile!}
-          onClose={() => setIsEditing(false)}
+          view={viewMode}
+          onClose={() => {setViewMode('edit'), setIsEditing(false)}}
           onSave={(updatedProfile) => {
             setProfile(updatedProfile)
             setIsEditing(false)
           }}
         />
       ) : (
-        <ScrollView style={styles.container}>
+        <View style={styles.container}>
           <View style={styles.header}>
-            <View style={styles.profileImageContainer}>
-              {profile?.images[0] && (
-                <Image 
-                  source={{ uri: profile.images[0].url }}
-                  style={styles.profileImage}
-                />
-              )}
-              {!loading && (
-                <TouchableOpacity 
-                  style={styles.editButton}
-                  onPress={() => setIsEditing(true)}
-                >
-                  <Text style={styles.editButtonText}>✎</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-            
-              <>
+            <View style={styles.headerLeft} />
+            <Text style={styles.headerTitle}>Avanti</Text>
+            <TouchableOpacity style={styles.headerRight}>
+              <Ionicons name="settings-outline" size={24} color={colors.text.primary} />
+            </TouchableOpacity>
+          </View>
+          
+          <ScrollView 
+            style={styles.scrollView}
+            contentContainerStyle={styles.scrollContent}
+          >
+            <View style={styles.profileSection}>
+              <View style={styles.imageContainer}>
+                {profile?.images[0] ? (
+                  <>
+                    <ExpoImage 
+                      source={{ uri: profile.images[0].url }}
+                      style={styles.profileImage}
+                      contentFit="cover"
+                    />
+                    <TouchableOpacity 
+                      style={styles.editImageButton}
+                      onPress={() => setIsEditing(true)}
+                    >
+                      <FontAwesome5 name="pen" size={22} color={colors.accent.primary} />
+                    </TouchableOpacity>
+                  </>
+                ) : (
+                  <View style={styles.emptyProfileImage}>
+                    <Ionicons name="person" size={80} color={colors.text.secondary} />
+                  </View>
+                )}
+              </View>
+
+              <View style={styles.infoContainer}>
                 <Text style={styles.name}>{profile?.name}</Text>
-                <Text style={styles.major}>{profile?.major}</Text>
-              </>
-            
-          </View>
+                <View style={styles.majorContainer}>
+                  <Ionicons 
+                    name="school" 
+                    size={20} 
+                    color={colors.accent.secondary}
+                    style={styles.majorIcon} 
+                  />
+                  <Text style={styles.major}>{profile?.major || 'Add your major'}</Text>
+                </View>
+              </View>
+            </View>
 
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity 
-              style={[styles.button, styles.logoutButton]} 
-              onPress={handleSignOut}
-            >
-              <Text style={styles.buttonText}>Logout</Text>
-            </TouchableOpacity>
+            <View style={styles.statsSection}>
+              <StatCard
+                icon="people"
+                title="Freundschaften"
+                value={friendshipCount.toString()}
+                action="Alle ansehen"
+                color={colors.accent.primary}
+                onPress={() => router.push('/(auth)/friends')}
+              />
+            </View>
 
-            <TouchableOpacity 
-              style={[styles.button, styles.deleteButton]} 
-              onPress={handleDeleteAccount}
-            >
-              <Text style={styles.buttonText}>Delete Account</Text>
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
+            <View style={styles.menuSection}>
+              <MenuItem icon="person" title="Profil bearbeiten" onPress={() => {setViewMode('edit'), setIsEditing(true)}} />
+              <MenuItem icon="images" title="Vorschau" onPress={() => {setViewMode('preview'), setIsEditing(true)}} />
+              <MenuItem icon="shield-checkmark" title="Sicherheit & Datenschutz" onPress={() => {}} />
+              <MenuItem icon="log-out" title="Logout" onPress={handleSignOut} />
+              <MenuItem 
+                icon="trash" 
+                title="Delete Account" 
+                onPress={handleDeleteAccount}
+                isDelete
+              />
+            </View>
+          </ScrollView>
+        </View>
       )}
     </SafeAreaWrapper>
   )
@@ -164,72 +290,168 @@ export default function Profile() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background.primary,
   },
   header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    backgroundColor: colors.background.primary,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.background.secondary,
+  },
+  headerLeft: {
+    width: 32,  // Match the width of settings button
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: colors.text.primary,
+  },
+  headerRight: {
+    width: 32,
+    alignItems: 'center',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 20,
+  },
+  profileSection: {
     alignItems: 'center',
     padding: 20,
+    paddingTop: 0,
   },
-  profileImageContainer: {
+  imageContainer: {
     position: 'relative',
+    marginVertical: 20,
   },
   profileImage: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    marginBottom: 12,
+    width: 150,
+    height: 150,
+    borderRadius: 90,
+    borderWidth: 5,
+    borderColor: colors.accent.primary,
   },
-  editButton: {
+  editImageButton: {
     position: 'absolute',
     top: 4,
-    right: 4,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: 'center',
+    right: 0,
+    backgroundColor: colors.background.primary,
+    width: 50,
+    height: 50,
+    borderRadius: 40,
     justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
   },
-  editButtonText: {
-    color: '#fff',
-    fontSize: 18,
+  emptyProfileImage: {
+    width: 120,
+    height: 120,
+    borderRadius: 90,
+    backgroundColor: colors.background.secondary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: colors.accent.primary,
+  },
+  infoContainer: {
+    alignItems: 'center',
+  },
+  majorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  majorIcon: {
+    marginRight: 8,
   },
   name: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 4,
   },
   major: {
-    fontSize: 16,
-    color: '#666',
+    fontSize: 18,
+    color: colors.text.secondary,
   },
-  buttonContainer: {
-    padding: 16,
+  statsSection: {
+    padding: 20,
+  },
+  menuSection: {
+    padding: 20,
     gap: 12,
   },
-  button: {
-    padding: 15,
-    borderRadius: 8,
+  statCard: {
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  statHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 12,
   },
-  logoutButton: {
-    backgroundColor: '#FF9500',
-  },
-  deleteButton: {
-    backgroundColor: '#FF3B30',
-  },
-  buttonText: {
-    color: '#fff',
+  statTitle: {
     fontSize: 16,
     fontWeight: '600',
+    color: colors.text.light,
   },
-  nameSkeleton: {
-    width: 150,
-    height: 24,
-    marginBottom: 4,
+  statAction: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: colors.text.light,
+    opacity: 0.9,
   },
-  majorSkeleton: {
-    width: 100,
-    height: 16,
+  statContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  iconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.15)',
+  },
+  statValue: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: colors.text.light,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: colors.background.secondary,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  deleteMenuItem: {
+    backgroundColor: 'transparent',
+  },
+  menuTitle: {
+    flex: 1,
+    fontSize: 16,
+    marginLeft: 12,
   },
 }) 

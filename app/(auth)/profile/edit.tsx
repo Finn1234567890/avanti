@@ -9,18 +9,21 @@ import { EditScreen } from './components/EditScreen'
 import { PreviewScreen } from './components/PreviewScreen'
 import type { FullProfileData } from './types'
 import { uploadImage } from '../../../lib/utils/imageUpload'
+import { colors } from '../../../lib/theme/colors'
+import { Ionicons } from '@expo/vector-icons'
 
-type ViewMode = 'edit' | 'preview'
+export type ViewMode = 'edit' | 'preview'
 
 type EditProfileProps = {
   profile: FullProfileData
   onClose: () => void
   onSave: (profile: FullProfileData) => void
+  view: ViewMode
 }
 
-export function EditProfile({ profile: initialProfile, onClose, onSave }: EditProfileProps) {
+export function EditProfile({ profile: initialProfile, onClose, onSave, view }: EditProfileProps) {
   const { session } = useAuth()
-  const [viewMode, setViewMode] = useState<ViewMode>('edit')
+  const [viewMode, setViewMode] = useState<ViewMode>(view)
   const [profile, setProfile] = useState(initialProfile)
 
   
@@ -115,25 +118,36 @@ export function EditProfile({ profile: initialProfile, onClose, onSave }: EditPr
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={onClose}>
-          <Text style={styles.cancelButton}>Cancel</Text>
+          <Text style={styles.headerButton}>ABBRUCH</Text>
         </TouchableOpacity>
-        <View style={styles.viewToggle}>
+        <TouchableOpacity onPress={handleSave}>
+          <Text style={[styles.headerButton]}>FERTIG</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.tabBar}>
+        <View style={styles.tabContainer}>
           <TouchableOpacity 
-            style={[styles.toggleButton, viewMode === 'edit' && styles.activeToggle]}
+            style={styles.tabButton}
             onPress={() => setViewMode('edit')}
           >
-            <Text style={styles.toggleText}>Edit</Text>
+            <Text style={[
+              styles.tabText,
+              viewMode === 'edit' && styles.activeTabText
+            ]}>Bearbeiten</Text>
+            {viewMode === 'edit' && <View style={styles.activeTabIndicator} />}
           </TouchableOpacity>
           <TouchableOpacity 
-            style={[styles.toggleButton, viewMode === 'preview' && styles.activeToggle]}
+            style={styles.tabButton}
             onPress={() => setViewMode('preview')}
           >
-            <Text style={styles.toggleText}>Preview</Text>
+            <Text style={[
+              styles.tabText,
+              viewMode === 'preview' && styles.activeTabText
+            ]}>Vorschau</Text>
+            {viewMode === 'preview' && <View style={styles.activeTabIndicator} />}
           </TouchableOpacity>
         </View>
-        <TouchableOpacity onPress={handleSave}>
-          <Text style={styles.doneButton}>Done</Text>
-        </TouchableOpacity>
       </View>
 
       <View style={styles.content}>
@@ -155,7 +169,7 @@ export function EditProfile({ profile: initialProfile, onClose, onSave }: EditPr
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background.primary,
   },
   content: {
     flex: 1,
@@ -164,38 +178,51 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-    backgroundColor: '#fff',
+    paddingHorizontal: 20,
+    paddingTop: 0,
+    paddingBottom: 0,
+    backgroundColor: colors.background.primary,
   },
-  cancelButton: {
-    fontSize: 17,
-    color: '#007AFF',
+  headerButton: {
+    paddingTop: 0,
+    fontWeight: '600',
+    fontSize: 12,
+    color: colors.accent.primary,
   },
   doneButton: {
-    fontSize: 17,
-    color: '#007AFF',
     fontWeight: '600',
   },
-  viewToggle: {
+  tabBar: {
+    borderBottomWidth: 1,
+    borderBottomColor: colors.background.secondary,
+  },
+  tabContainer: {
     flexDirection: 'row',
-    backgroundColor: '#f0f0f0',
-    borderRadius: 8,
-    padding: 2,
+    justifyContent: 'center',
+    paddingHorizontal: 20,
   },
-  toggleButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 6,
+  tabButton: {
+    position: 'relative',
+    marginHorizontal: 12,
+    paddingVertical: 6,
+    paddingBottom: 6,
   },
-  activeToggle: {
-    backgroundColor: '#fff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 1,
-    elevation: 1,
+  tabText: {
+    fontSize: 18,
+    color: colors.text.secondary,
+    fontWeight: '500',
+  },
+  activeTabText: {
+    color: colors.accent.primary,
+    fontWeight: '500',
+  },
+  activeTabIndicator: {
+    position: 'absolute',
+    bottom: -1,
+    left: 0,
+    right: 0,
+    height: 2,
+    backgroundColor: colors.accent.primary,
   },
   profileImage: {
     width: 120,
@@ -211,9 +238,5 @@ const styles = StyleSheet.create({
   major: {
     fontSize: 16,
     color: '#666',
-  },
-  toggleText: {
-    fontSize: 16,
-    fontWeight: 'bold',
   },
 }) 

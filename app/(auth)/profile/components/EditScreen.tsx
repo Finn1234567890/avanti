@@ -5,6 +5,7 @@ import type { FullProfileData } from '../types'
 import { IMAGE_LIMITS, INTERESTS } from '../../../../lib/utils/constants'
 import { useAuth } from '../../../../lib/context/auth'
 import { supabase } from '../../../../lib/supabase/supabase'
+import { colors } from '../../../../lib/theme/colors'
 
 type EditScreenProps = {
   profile: FullProfileData | null
@@ -55,9 +56,7 @@ export function EditScreen({
     <ScrollView style={styles.container}>
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>MEDIA</Text>
-          <Text style={styles.addNowButton}>ADD NOW</Text>
-          <Text style={styles.percentage}>+40%</Text>
+          <Text style={styles.sectionTitle}>Bilder</Text>
         </View>
         <ImageGrid 
           images={profile.images}
@@ -69,38 +68,43 @@ export function EditScreen({
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>BASIC INFO</Text>
+        <Text style={styles.sectionTitle}>Über dich</Text>
         <View style={styles.inputContainer}>
-          <Text style={styles.label}>Phone</Text>
+          <View style={styles.phoneHeader}>
+            <Text style={styles.label}>Telefonnummer</Text>
+            <Text style={styles.phoneHint}>NICHT VERÄNDERBAR</Text>
+          </View>
           <View style={styles.phoneContainer}>
             <Text style={styles.phoneText}>{phoneNumber || 'Loading...'}</Text>
           </View>
         </View>
         <View style={styles.inputContainer}>
-          <Text style={styles.label}>Name</Text>
-          <TextInput
-            style={styles.input}
-            value={profile.name}
-            onChangeText={(text) => onProfileUpdate({ name: text })}
-            placeholder="Enter your name"
-          />
+          <View style={styles.phoneHeader}>
+            <Text style={styles.label}>Name</Text>
+            <Text style={styles.phoneHint}>NICHT VERÄNDERBAR</Text>
+          </View>
+          <View style={[styles.phoneContainer, styles.disabledInput]}>
+            <Text style={styles.phoneText}>{profile.name}</Text>
+          </View>
         </View>
         <View style={styles.inputContainer}>
-          <Text style={styles.label}>Major</Text>
+          <Text style={styles.label}>Studiengang</Text>
           <TextInput
             style={styles.input}
             value={profile.major}
             onChangeText={(text) => onProfileUpdate({ major: text })}
-            placeholder="Your major"
+            placeholder="Dein Studiengang"
+            placeholderTextColor={colors.text.secondary}
           />
         </View>
         <View style={styles.inputContainer}>
-          <Text style={styles.label}>Description</Text>
+          <Text style={styles.label}>Beschreibung</Text>
           <TextInput
             style={[styles.input, styles.textArea]}
             value={profile.description}
             onChangeText={(text) => onProfileUpdate({ description: text })}
-            placeholder="Tell us about yourself"
+            placeholder="Erzähl etwas über dich"
+            placeholderTextColor={colors.text.secondary}
             multiline
             numberOfLines={4}
           />
@@ -108,7 +112,7 @@ export function EditScreen({
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>INTERESTS</Text>
+        <Text style={styles.sectionTitle}>Interessen</Text>
         <View style={styles.interestsGrid}>
           {INTERESTS.map((interest) => (
             <TouchableOpacity
@@ -136,98 +140,102 @@ export function EditScreen({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background.primary,
   },
   section: {
-    padding: 16,
+    padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: colors.background.secondary,
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 16,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 20,
     fontWeight: '600',
-    color: '#333',
-    marginBottom: 16,
+    color: colors.text.primary,
+    paddingBottom: 10,
   },
   inputContainer: {
-    marginBottom: 16,
+    marginBottom: 20,
   },
   label: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: 16,
+    color: colors.text.secondary,
     marginBottom: 8,
+    fontWeight: '500',
   },
   input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
+    backgroundColor: colors.background.secondary,
+    borderRadius: 12,
+    padding: 16,
     fontSize: 16,
+    color: colors.text.primary,
   },
   textArea: {
-    height: 100,
+    height: 120,
     textAlignVertical: 'top',
   },
   interestsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 10,
   },
   interestTag: {
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: colors.background.secondary,
   },
   interestTagSelected: {
-    backgroundColor: '#E94057',
+    backgroundColor: colors.accent.secondary,
   },
   interestText: {
-    color: '#666',
-    fontSize: 14,
+    color: colors.text.secondary,
+    fontSize: 16,
+    fontWeight: '500',
   },
   interestTextSelected: {
-    color: '#fff',
+    color: colors.text.light,
   },
   addNowButton: {
-    marginLeft: 8,
     fontSize: 14,
-    color: '#E94057',
+    color: colors.accent.primary,
     fontWeight: '600',
   },
   percentage: {
-    marginLeft: 'auto',
     fontSize: 14,
-    color: '#E94057',
+    color: colors.accent.secondary,
   },
-  optionRow: {
+  phoneHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
+    justifyContent: 'space-between',
   },
-  optionText: {
-    fontSize: 16,
-    color: '#333',
-  },
-  optionDescription: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 4,
+  phoneHint: {
+    fontSize: 12,
+    color: colors.accent.secondary,
+    fontWeight: '500',
   },
   phoneContainer: {
-    padding: 15,
-    paddingLeft: 0,
-    borderRadius: 5,
-    backgroundColor: '#ffffff',
+    opacity: 0.5,
+    backgroundColor: colors.background.secondary,
+    padding: 16,
+    borderRadius: 12,
   },
   phoneText: {
     fontSize: 16,
-    color: '#666',
+    color: colors.text.primary,
+  },
+  disabledInput: {
+    opacity: 0.5,
   },
 }) 

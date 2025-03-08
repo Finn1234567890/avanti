@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, Alert, RefreshControl } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, Alert, RefreshControl, ScrollView, Image } from 'react-native'
 import { SafeAreaWrapper } from '../../../components/SafeAreaWrapper'
 import { useAuth } from '../../../lib/context/auth'
 import { supabase } from '../../../lib/supabase/supabase'
@@ -7,30 +7,37 @@ import * as Haptics from 'expo-haptics'
 import { openMessaging } from '../../../lib/utils/messaging'
 import * as Clipboard from 'expo-clipboard'
 import { Ionicons } from '@expo/vector-icons'
+import { LinearGradient } from 'expo-linear-gradient'
+import { colors } from '../../../lib/theme/colors'
+import type { ProfileEntry } from '../profile/types'
+import { Profile } from '../home/types'
 
-type TabType = 'incoming' | 'outgoing' | 'friends'
 
-export type FriendshipWithProfile = {
+export type FriendshipEntry = {
   'friendship-id': string
   status: string
   'requester-ID': string
   'receiver-ID': string
-  requester: {
-    name: string
-  }
-  receiver: {
-    name: string
-  }
-  displayedPhone?: string
+
 }
+
+export type FriendshipWithProfile =
+  FriendshipEntry & {
+    friendName: string
+    userName: string
+    displayedPhone?: string
+  }
+
+export type FriendshipWithProfileAndImages = 
+  FriendshipWithProfile & Profile
+
 
 export default function Friends() {
   const { session } = useAuth()
-  const [activeTab, setActiveTab] = useState<TabType>('friends')
-  const [friendships, setFriendships] = useState<FriendshipWithProfile[]>([])
+  const [friendships, setFriendships] = useState<FriendshipWithProfileAndImages[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
-
+  const [userName, setUserName] = useState<string | null>(null)
   useEffect(() => {
     loadFriendships()
   }, [])
@@ -38,70 +45,101 @@ export default function Friends() {
   const loadFriendships = async () => {
     try {
       if (!session?.user?.id) return
+      setLoading(true)
+      setFriendships([]) // Clear existing data
 
-      const { data, error } = await supabase
+      //get name of user
+      const { data: userData, error: userError } = await supabase
+        .from('Profile')
+        .select('name')
+        .eq('User-ID', session.user.id)
+        .single()
+      
+      if (userError) {
+        console.error('Error fetching user data:', userError)
+        throw userError
+      }
+
+      console.log('logged in user name', userData?.name)
+      console.log('session.user.id', session.user.id)
+
+      setUserName(userData?.name)
+
+      // Get all friendships where user is involved
+      const { data: friendshipsData, error } = await supabase
         .from('Friendships')
-        .select(`
-          friendship-id,
-          status,
-          requester-ID,
-          receiver-ID
-        `)
+        .select('*')
         .or(`requester-ID.eq.${session.user.id},receiver-ID.eq.${session.user.id}`)
-        .returns<FriendshipWithProfile[]>()
+        .returns<FriendshipEntry[]>()
 
       if (error) throw error
-      if (!data) return
 
-      console.log(data)
+      console.log('friendshipsData', friendshipsData)
 
-      data.forEach(async (friendship) => {
-        const requesterId: string = friendship['requester-ID']
-        const receiverId = friendship['receiver-ID']
+      if (friendshipsData) {
+        friendshipsData.map(async (friendship) => {
+          const nonUserId = session.user.id === friendship['requester-ID'] ? friendship['receiver-ID'] : friendship['requester-ID']
 
-        const { data: requesterName, error: requesterNameError } = await supabase
-          .from('Profile')
-          .select('name')
-          .eq('User-ID', requesterId)
-          .single()
+          const { data: profilesData, error: profilesError } = await supabase
+            .from('Profile')
+            .select('*')
+            .eq('User-ID', nonUserId)
+            .single()
 
-        if (requesterNameError) throw requesterNameError
-
-        const { data: receiverName, error: receiverNameError } = await supabase
-          .from('Profile')
-          .select('name')
-          .eq('User-ID', receiverId)
-          .single()
-
-        if (receiverNameError) throw receiverNameError
-
-
-        if (requesterName && receiverName) {
-
-          const friendId = session.user.id === requesterId ? receiverId : requesterId
-          const phoneNumber = await getPhoneNumber(friendId)
-
-          console.log("Phone Number: ", phoneNumber)
-
-          const friendshipData: FriendshipWithProfile = {
-            'friendship-id': data[0]['friendship-id'],
-            status: data[0]!.status,
-            'requester-ID': data[0]['requester-ID'],
-            'receiver-ID': data[0]['receiver-ID'],
-            requester: {
-              name: requesterName.name,
-            },
-            receiver: {
-              name: receiverName.name,
-            },
-            displayedPhone: phoneNumber
+          if (profilesError) {
+            console.error('Error fetching profiles:', profilesError)
+            throw profilesError
           }
 
-          setFriendships(friendships => [...friendships, friendshipData])
-        }
-      })
+          const friendName = profilesData.name
 
+          const { data: imagesData, error: imagesError } = await supabase
+            .from('Images')
+            .select('*')
+            .eq('P-ID', profilesData['P-ID'])
+            .returns<{ url: string }[]>()
+            
+          if (imagesError) {
+            console.error('Error fetching images:', imagesError)
+            throw imagesError
+          }
 
+          const images = imagesData.map((image) => ({url: image.url}))
+
+          const friendshipDataEntry: FriendshipWithProfileAndImages = {
+            'friendship-id': friendship['friendship-id'],
+            status: friendship.status,
+            'requester-ID': friendship['requester-ID'],
+            'receiver-ID': friendship['receiver-ID'],
+            friendName: friendName,
+            userName: userName!,
+            images: images,
+            ...profilesData
+          }
+
+          if (friendship.status === 'accepted') {
+            const { data: phoneData, error: phoneError } = await supabase
+              .from('PhoneNumbers')
+              .select('phone_number')
+              .eq('User-ID', nonUserId)
+              .single()
+
+            if (phoneError) {
+              console.error('Error fetching phone number:', phoneError)
+              throw phoneError
+            }
+
+            friendshipDataEntry.displayedPhone = phoneData?.phone_number
+          }
+
+          console.log('friendshipDataEntry', friendshipDataEntry)
+
+          setFriendships((prev) => [...prev, friendshipDataEntry])
+        })
+
+        if (error) throw error
+        if (!friendshipsData) return
+      }
     } catch (error) {
       console.error('Error loading friendships:', error)
       Alert.alert('Error', 'Failed to load friendships')
@@ -110,17 +148,6 @@ export default function Friends() {
     }
   }
 
-  const getPhoneNumber = async (friendId: string) => {
-    const { data: phoneData, error: phoneError } = await supabase
-      .from('PhoneNumbers')
-      .select('phone_number')
-      .eq('User-ID', friendId)
-      .single()
-
-    if (phoneError) return undefined
-
-    return phoneData?.phone_number
-  }
 
   const handleAccept = async (friendshipId: string) => {
     await Haptics.notificationAsync(
@@ -159,7 +186,7 @@ export default function Friends() {
   const handleMessage = async (profile: FriendshipWithProfile, platform: string) => {
     if (!profile.displayedPhone) return
     try {
-      const messageBy = session?.user?.id === profile['requester-ID'] ? profile.requester.name : profile.receiver.name
+      const messageBy = profile.userName
       await openMessaging(platform, profile.displayedPhone, messageBy)
     } catch (error) {
       console.error('Error opening messaging:', error)
@@ -167,16 +194,25 @@ export default function Friends() {
     }
   }
 
-  const filteredFriendships = friendships.filter(friendship => {
-    switch (activeTab) {
-      case 'incoming':
-        return friendship.status === 'pending' && friendship['receiver-ID'] === session?.user?.id
-      case 'outgoing':
-        return friendship.status === 'pending' && friendship['requester-ID'] === session?.user?.id
-      case 'friends':
-        return friendship.status === 'accepted'
-    }
-  })
+  const handleCopyNumber = async (friend: FriendshipWithProfileAndImages) => {
+    if (!friend.displayedPhone) return
+    await Clipboard.setStringAsync(friend.displayedPhone)
+    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+    Alert.alert('Copied!', 'Phone number copied to clipboard')
+  }
+
+  // Helper functions to filter friendships
+  const incomingRequests = friendships.filter(f =>
+    f.status === 'pending' && f['receiver-ID'] === session?.user?.id
+  )
+
+  const outgoingRequests = friendships.filter(f =>
+    f.status === 'pending' && f['requester-ID'] === session?.user?.id
+  )
+
+  const acceptedFriendships = friendships.filter(f =>
+    f.status === 'accepted'
+  )
 
   const onRefresh = React.useCallback(async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
@@ -186,130 +222,150 @@ export default function Friends() {
     setRefreshing(false)
   }, [])
 
-  const renderFriendItem = ({ item }: { item: FriendshipWithProfile }) => {
-    const isRequester = item['requester-ID'] === session?.user?.id
-    const profile = isRequester ? item.receiver : item.requester
-
-    const handleCopyNumber = async () => {
-      if (!item.displayedPhone) return
-      await Clipboard.setStringAsync(item.displayedPhone)
-      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
-      Alert.alert('Copied!', 'Phone number copied to clipboard')
-    }
-
-    return (
-      <View style={styles.friendItem}>
-        <View style={styles.friendInfo}>
-          <Text style={styles.name}>{profile.name}</Text>
-          {item.status === 'accepted' && item.displayedPhone && (
-            <View style={styles.phoneContainer}>
-              <Text style={styles.phone}>{item.displayedPhone}</Text>
-              <TouchableOpacity 
-                onPress={handleCopyNumber}
-                style={styles.copyButton}
-              >
-                <Ionicons name="copy-outline" size={18} color="#666" />
-              </TouchableOpacity>
-            </View>
-          )}
-          {item.status === 'pending' && (
-            <View style={styles.actionButtons}>
-              {!isRequester ? (
-                <>
-                  <TouchableOpacity
-                    style={[styles.button, styles.acceptButton]}
-                    onPress={() => handleAccept(item['friendship-id'])}
-                  >
-                    <Text style={styles.buttonText}>Accept</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.button, styles.declineButton]}
-                    onPress={() => handleDecline(item['friendship-id'])}
-                  >
-                    <Text style={styles.buttonText}>Decline</Text>
-                  </TouchableOpacity>
-                </>
-              ) : (
-                <TouchableOpacity
-                  style={[styles.button, styles.declineButton]}
-                  onPress={() => handleDecline(item['friendship-id'])}
-                >
-                  <Text style={styles.buttonText}>Cancel</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          )}
-          {item.status === 'accepted' && (
-            <TouchableOpacity
-              style={[styles.button, styles.declineButton]}
-              onPress={() => handleDecline(item['friendship-id'])}
-            >
-              <Text style={styles.buttonText}>Unfriend</Text>
-            </TouchableOpacity>
-          )}
-          {item.status === 'accepted' && (
-            <View>
-              <TouchableOpacity
-                style={styles.messageButton}
-                onPress={() => handleMessage(item, 'whatsapp')}
-              >
-                <Text style={styles.messageButtonText}>Message WhatsApp</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.messageButton}
-                onPress={() => handleMessage(item, 'sms')}
-              >
-                <Text style={styles.messageButtonText}>Message SMS</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </View>
-      </View>
-    )
-  }
+  console.log('Friendships', friendships)
 
   return (
     <SafeAreaWrapper>
       <View style={styles.container}>
-        <View style={styles.tabs}>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'friends' && styles.activeTab]}
-            onPress={() => setActiveTab('friends')}
-          >
-            <Text style={styles.tabText}>Friends</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'incoming' && styles.activeTab]}
-            onPress={() => setActiveTab('incoming')}
-          >
-            <Text style={styles.tabText}>Incoming</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'outgoing' && styles.activeTab]}
-            onPress={() => setActiveTab('outgoing')}
-          >
-            <Text style={styles.tabText}>Outgoing</Text>
-          </TouchableOpacity>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Avanti</Text>
+          <Ionicons name="shield-checkmark" size={28} color={colors.text.primary} />
         </View>
 
-        <FlatList
-          data={filteredFriendships}
-          renderItem={renderFriendItem}
-          keyExtractor={item => item['friendship-id']}
-          contentContainerStyle={styles.list}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor="#007AFF"
-            />
-          }
-          ListEmptyComponent={
-            <Text style={styles.emptyText}>
-              {loading ? 'Loading...' : 'No requests found'}
-            </Text>
-          }
-        />
+        {/* Requests Section - Horizontal Scrolling */}
+        {(incomingRequests.length > 0 || outgoingRequests.length > 0) && (
+          <View style={styles.requestsSection}>
+            <Text style={styles.sectionTitle}>Ausstehende Anfragen</Text>
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.requestsScroll}
+            >
+              {[...incomingRequests, ...outgoingRequests].map(request => (
+                <View key={request['friendship-id']} style={styles.requestCard}>
+                  <LinearGradient
+                    colors={[colors.background.secondary, colors.background.secondary]}
+                    style={styles.requestCardContent}
+                  >
+                    {request.images[0] && (
+                      <Image 
+                        source={{ uri: request.images[0].url }}
+                        style={styles.profileImage}
+                      />
+                    )}
+                    <Text style={styles.name}>{request.friendName}</Text>
+                    <View style={styles.badge}>
+                      <Text style={styles.badgeText}>
+                        {request['receiver-ID'] === session?.user?.id ? 'Neue Anfrage' : 'Gesendet'}
+                      </Text>
+                    </View>
+                    <View style={styles.actionButtons}>
+                      {request['receiver-ID'] === session?.user?.id ? (
+                        <>
+                          <TouchableOpacity 
+                            style={[styles.button, styles.acceptButton]}
+                            onPress={() => handleAccept(request['friendship-id'])}
+                          >
+                            <Text style={styles.buttonText}>Annehmen</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity 
+                            style={[styles.button, styles.declineButton]}
+                            onPress={() => handleDecline(request['friendship-id'])}
+                          >
+                            <LinearGradient
+                              colors={['#FE3C72', '#FF2D55']}
+                              start={{ x: 0, y: 0 }}
+                              end={{ x: 1, y: 0 }}
+                              style={StyleSheet.absoluteFill}
+                            />
+                            <Text style={styles.buttonText}>Zurückziehen</Text>
+                          </TouchableOpacity>
+                        </>
+                      ) : (
+                        <TouchableOpacity 
+                          style={[styles.button, styles.declineButton]}
+                          onPress={() => handleDecline(request['friendship-id'])}
+                        >
+                          <LinearGradient
+                            colors={['#FE3C72', '#FF2D55']}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 0 }}
+                            style={StyleSheet.absoluteFill}
+                          />
+                          <Text style={styles.buttonText}>Zurückziehen</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  </LinearGradient>
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
+        {/* Friends List - Vertical Scrolling */}
+        <View style={styles.friendsSection}>
+          <Text style={styles.sectionTitle}>Freunde</Text>
+          <FlatList
+            data={acceptedFriendships}
+            renderItem={({ item }) => (
+              <View style={styles.friendCard}>
+                <LinearGradient
+                  colors={[colors.background.secondary, colors.background.secondary]}
+                  style={styles.friendCardContent}
+                >
+                  <View style={styles.friendHeader}>
+                    {item.images?.[0] && (
+                      <Image 
+                        src={item.images[0].url}
+                        style={styles.profileImage}
+                      />
+                    )}
+                    <View style={styles.friendInfo}>
+                      <Text style={styles.name}>{item.friendName}</Text>
+                      <View style={styles.badge}>
+                        <Text style={styles.badgeText}>Verbunden</Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  {item.displayedPhone && (
+                    <View style={styles.phoneContainer}>
+                      <Text style={styles.phone}>{item.displayedPhone}</Text>
+                      <TouchableOpacity onPress={() => handleCopyNumber(item)}>
+                        <Ionicons name="copy-outline" size={20} color={colors.text.secondary} />
+                      </TouchableOpacity>
+                    </View>
+                  )}
+
+                  <View style={styles.messageButtons}>
+                    <TouchableOpacity 
+                      style={[styles.messageButton, styles.whatsappButton]}
+                      onPress={() => handleMessage(item, 'whatsapp')}
+                    >
+                      <Ionicons name="logo-whatsapp" size={24} color={colors.text.light} />
+                      <Text style={styles.messageButtonText}>WhatsApp</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={[styles.messageButton, styles.smsButton]}
+                      onPress={() => handleMessage(item, 'sms')}
+                    >
+                      <Ionicons name="chatbubble-outline" size={24} color={colors.text.light} />
+                      <Text style={styles.messageButtonText}>SMS</Text>
+                    </TouchableOpacity>
+                  </View>
+                </LinearGradient>
+              </View>
+            )}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor={colors.accent.primary}
+              />
+            }
+          />
+        </View>
       </View>
     </SafeAreaWrapper>
   )
@@ -318,96 +374,145 @@ export default function Friends() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background.primary,
   },
-  tabs: {
+  header: {
+    padding: 16,
+    paddingTop: 0,
     flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: 12,
+    justifyContent: 'space-between',
     alignItems: 'center',
   },
-  activeTab: {
-    borderBottomWidth: 2,
-    borderBottomColor: '#007AFF',
+  headerTitle: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: colors.text.primary,
   },
-  tabText: {
-    fontSize: 16,
-    color: '#333',
+  requestsSection: {
+    paddingHorizontal: 16,
   },
-  list: {
-    padding: 16,
+  friendsSection: {
+    flex: 1,
+    paddingHorizontal: 16,
+    marginTop: 24,
   },
-  friendItem: {
-    flexDirection: 'row',
-    padding: 12,
-    borderRadius: 12,
-    backgroundColor: '#f8f8f8',
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: colors.text.primary,
     marginBottom: 12,
   },
-  friendInfo: {
-    flex: 1,
-    justifyContent: 'center',
+  requestsScroll: {
+    paddingRight: 16,
+    gap: 12,
+  },
+  requestCard: {
+    width: 200,
+    minHeight: 140,
+  },
+  friendCard: {
+    marginBottom: 12,
+  },
+  requestCardContent: {
+    padding: 16,
+    borderRadius: 16,
+  },
+  friendCardContent: {
+    padding: 16,
+    borderRadius: 16,
+  },
+  friendHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
   },
   name: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
-    marginBottom: 4,
+    color: colors.text.primary,
   },
-  actionButtons: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 8,
-  },
-  button: {
-    paddingVertical: 6,
+  badge: {
+    backgroundColor: colors.accent.primary + '20',
     paddingHorizontal: 12,
-    borderRadius: 16,
-    minWidth: 80,
-    alignItems: 'center',
+    paddingVertical: 4,
+    borderRadius: 12,
   },
-  acceptButton: {
-    backgroundColor: '#34C759',
-  },
-  declineButton: {
-    backgroundColor: '#FF3B30',
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  emptyText: {
-    textAlign: 'center',
-    color: '#666',
-    marginTop: 24,
+  badgeText: {
+    color: colors.accent.primary,
+    fontSize: 12,
+    fontWeight: '500',
   },
   phoneContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    gap: 8,
+    marginBottom: 12,
   },
   phone: {
     fontSize: 14,
-    color: '#666',
+    color: colors.text.secondary,
   },
-  copyButton: {
-    padding: 4,
-    marginLeft: 8,
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
+  },
+  button: {
+    flex: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    alignItems: 'center',
+  },
+  acceptButton: {
+    backgroundColor: colors.accent.primary,
+  },
+  declineButton: {
+    overflow: 'hidden',
+    backgroundColor: 'transparent',
+  },
+  messageButtons: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
   },
   messageButton: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    marginLeft: 8,
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    padding: 12,
+    borderRadius: 12,
+  },
+  whatsappButton: {
+    backgroundColor: '#25D366',
+  },
+  smsButton: {
+    backgroundColor: colors.accent.primary,
   },
   messageButtonText: {
-    color: '#fff',
+    color: colors.text.light,
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '600',
+  },
+  buttonText: {
+    color: colors.text.light,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  friendItem: {
+    marginBottom: 12,
+    marginHorizontal: 16,
+  },
+  profileImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    marginBottom: 12,
+  },
+  friendInfo: {
+    flex: 1,
+    marginLeft: 12,
   },
 }) 
