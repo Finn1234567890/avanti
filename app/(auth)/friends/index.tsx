@@ -11,6 +11,8 @@ import { LinearGradient } from 'expo-linear-gradient'
 import { colors } from '../../../lib/theme/colors'
 import type { ProfileEntry } from '../profile/types'
 import { Profile } from '../home/types'
+import { ProfileCard } from '../home/components/ProfileCard'
+import { router } from 'expo-router'
 
 
 export type FriendshipEntry = {
@@ -38,6 +40,8 @@ export default function Friends() {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [userName, setUserName] = useState<string | null>(null)
+  const [isInspecting, setIsInspecting] = useState<FriendshipWithProfileAndImages | null>(null)
+
   useEffect(() => {
     loadFriendships()
   }, [])
@@ -222,141 +226,63 @@ export default function Friends() {
     setRefreshing(false)
   }, [])
 
+  const handleInspect = (profile: FriendshipWithProfileAndImages) => {
+    setIsInspecting(profile)
+  }
+
+  const handleCloseInspect = () => {
+    setIsInspecting(null)
+  }
+
   console.log('Friendships', friendships)
+
+  const EmptyFriendsList = () => (
+    <View style={styles.emptyContainer}>
+      <Text style={styles.emptyText}>
+        Hier sieht's noch ziemlich leer aus. Suche im Feed Studenten mit ähnlichen Interessen und schicke ihnen eine Freundschaftsanfrage.
+      </Text>
+      <TouchableOpacity 
+        style={styles.findButton}
+        onPress={() => router.push('/(auth)/home')}
+      >
+        <Ionicons name="people" size={20} color={colors.text.light} />
+        <Text style={styles.findButtonText}>Studenten finden</Text>
+      </TouchableOpacity>
+    </View>
+  )
 
   return (
     <SafeAreaWrapper>
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Avanti</Text>
-          <Ionicons name="shield-checkmark" size={28} color={colors.text.primary} />
-        </View>
-
-        {/* Requests Section - Horizontal Scrolling */}
-        {(incomingRequests.length > 0 || outgoingRequests.length > 0) && (
-          <View style={styles.requestsSection}>
-            <Text style={styles.sectionTitle}>Ausstehende Anfragen</Text>
-            <ScrollView 
-              horizontal 
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.requestsScroll}
-            >
-              {[...incomingRequests, ...outgoingRequests].map(request => (
-                <View key={request['friendship-id']} style={styles.requestCard}>
-                  <LinearGradient
-                    colors={[colors.background.secondary, colors.background.secondary]}
-                    style={styles.requestCardContent}
-                  >
-                    {request.images[0] && (
-                      <Image 
-                        source={{ uri: request.images[0].url }}
-                        style={styles.profileImage}
-                      />
-                    )}
-                    <Text style={styles.name}>{request.friendName}</Text>
-                    <View style={styles.badge}>
-                      <Text style={styles.badgeText}>
-                        {request['receiver-ID'] === session?.user?.id ? 'Neue Anfrage' : 'Gesendet'}
-                      </Text>
-                    </View>
-                    <View style={styles.actionButtons}>
-                      {request['receiver-ID'] === session?.user?.id ? (
-                        <>
-                          <TouchableOpacity 
-                            style={[styles.button, styles.acceptButton]}
-                            onPress={() => handleAccept(request['friendship-id'])}
-                          >
-                            <Text style={styles.buttonText}>Annehmen</Text>
-                          </TouchableOpacity>
-                          <TouchableOpacity 
-                            style={[styles.button, styles.declineButton]}
-                            onPress={() => handleDecline(request['friendship-id'])}
-                          >
-                            <LinearGradient
-                              colors={['#FE3C72', '#FF2D55']}
-                              start={{ x: 0, y: 0 }}
-                              end={{ x: 1, y: 0 }}
-                              style={StyleSheet.absoluteFill}
-                            />
-                            <Text style={styles.buttonText}>Zurückziehen</Text>
-                          </TouchableOpacity>
-                        </>
-                      ) : (
-                        <TouchableOpacity 
-                          style={[styles.button, styles.declineButton]}
-                          onPress={() => handleDecline(request['friendship-id'])}
-                        >
-                          <LinearGradient
-                            colors={['#FE3C72', '#FF2D55']}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 0 }}
-                            style={StyleSheet.absoluteFill}
-                          />
-                          <Text style={styles.buttonText}>Zurückziehen</Text>
-                        </TouchableOpacity>
-                      )}
-                    </View>
-                  </LinearGradient>
-                </View>
-              ))}
-            </ScrollView>
+      {isInspecting ? (
+        <View style={styles.container}>
+          <View style={styles.header}>
+            <TouchableOpacity onPress={handleCloseInspect} style={styles.backButton}>
+              <Ionicons name="chevron-back" size={28} color={colors.text.primary} />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Profil</Text>
           </View>
-        )}
+          <ProfileCard 
+            profile={{
+              'P-ID': isInspecting['P-ID'],
+              'User-ID': isInspecting['User-ID'],
+              name: isInspecting.friendName,
+              major: isInspecting.major,
+              description: isInspecting.description || '',
+              tags: isInspecting.tags || [],
+              images: isInspecting.images,
+            }} 
+            preview={true}
+          />
+        </View>
+      ) : (
+        <View style={styles.container}>
+          <View style={styles.header}>
+            <Text style={styles.headerTitle}>Avanti</Text>
+            <Ionicons name="shield-checkmark" size={28} color={colors.text.primary} />
+          </View>
 
-        {/* Friends List - Vertical Scrolling */}
-        <View style={styles.friendsSection}>
-          <Text style={styles.sectionTitle}>Freunde</Text>
-          <FlatList
-            data={acceptedFriendships}
-            renderItem={({ item }) => (
-              <View style={styles.friendCard}>
-                <LinearGradient
-                  colors={[colors.background.secondary, colors.background.secondary]}
-                  style={styles.friendCardContent}
-                >
-                  <View style={styles.friendHeader}>
-                    {item.images?.[0] && (
-                      <Image 
-                        src={item.images[0].url}
-                        style={styles.profileImage}
-                      />
-                    )}
-                    <View style={styles.friendInfo}>
-                      <Text style={styles.name}>{item.friendName}</Text>
-                      <View style={styles.badge}>
-                        <Text style={styles.badgeText}>Verbunden</Text>
-                      </View>
-                    </View>
-                  </View>
-
-                  {item.displayedPhone && (
-                    <View style={styles.phoneContainer}>
-                      <Text style={styles.phone}>{item.displayedPhone}</Text>
-                      <TouchableOpacity onPress={() => handleCopyNumber(item)}>
-                        <Ionicons name="copy-outline" size={20} color={colors.text.secondary} />
-                      </TouchableOpacity>
-                    </View>
-                  )}
-
-                  <View style={styles.messageButtons}>
-                    <TouchableOpacity 
-                      style={[styles.messageButton, styles.whatsappButton]}
-                      onPress={() => handleMessage(item, 'whatsapp')}
-                    >
-                      <Ionicons name="logo-whatsapp" size={24} color={colors.text.light} />
-                      <Text style={styles.messageButtonText}>WhatsApp</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity 
-                      style={[styles.messageButton, styles.smsButton]}
-                      onPress={() => handleMessage(item, 'sms')}
-                    >
-                      <Ionicons name="chatbubble-outline" size={24} color={colors.text.light} />
-                      <Text style={styles.messageButtonText}>SMS</Text>
-                    </TouchableOpacity>
-                  </View>
-                </LinearGradient>
-              </View>
-            )}
+          <ScrollView
+            style={styles.content}
             refreshControl={
               <RefreshControl
                 refreshing={refreshing}
@@ -364,9 +290,164 @@ export default function Friends() {
                 tintColor={colors.accent.primary}
               />
             }
-          />
+          >
+            {/* Requests Section - Horizontal Scrolling */}
+            {(incomingRequests.length > 0 || outgoingRequests.length > 0) && (
+              <View style={styles.requestsSection}>
+                <Text style={styles.sectionTitle}>Ausstehende Anfragen</Text>
+                <ScrollView 
+                  horizontal 
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.requestsScroll}
+                >
+                  {[...incomingRequests, ...outgoingRequests].map(request => (
+                    <View key={request['friendship-id']} style={styles.requestCard}>
+                      <LinearGradient
+                        colors={[colors.background.secondary, colors.background.secondary]}
+                        style={styles.requestCardContent}
+                      >
+                        <TouchableOpacity 
+                          style={styles.friendHeader}
+                          onPress={() => handleInspect(request)}
+                        >
+                          {request.images[0] && (
+                            <Image 
+                              source={{ uri: request.images[0].url }}
+                              style={styles.profileImage}
+                            />
+                          )}
+                          <View style={styles.friendInfo}>
+                            <Text style={styles.name}>{request.friendName}</Text>
+                            <View style={styles.badge}>
+                              <Text style={styles.badgeText}>
+                                <Text style={styles.statusDot}>●{' '}</Text>
+                                {request['receiver-ID'] === session?.user?.id ? 'Neue Anfrage' : 'Gesendet'}
+                              </Text>
+                            </View>
+                          </View>
+                          <Ionicons name="chevron-forward" size={34} color={colors.text.secondary} />
+                        </TouchableOpacity>
+
+                        <View style={styles.actionButtons}>
+                          {request['receiver-ID'] === session?.user?.id ? (
+                            <>
+                              <TouchableOpacity 
+                                style={[styles.button, styles.acceptButton]}
+                                onPress={() => handleAccept(request['friendship-id'])}
+                              >
+                                <Ionicons name="checkmark" size={20} color={colors.text.light} />
+                              </TouchableOpacity>
+                              <TouchableOpacity 
+                                style={[styles.button, styles.declineButton]}
+                                onPress={() => handleDecline(request['friendship-id'])}
+                              >
+                                <LinearGradient
+                                  colors={['#FE3C72', '#FF2D55']}
+                                  start={{ x: 0, y: 0 }}
+                                  end={{ x: 1, y: 0 }}
+                                  style={StyleSheet.absoluteFill}
+                                />
+                                <Ionicons name="close" size={20} color={colors.text.light} />
+                              </TouchableOpacity>
+                            </>
+                          ) : (
+                            <TouchableOpacity 
+                              style={[styles.button, styles.declineButton]}
+                              onPress={() => handleDecline(request['friendship-id'])}
+                            >
+                              <LinearGradient
+                                colors={['#FE3C72', '#FF2D55']}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 0 }}
+                                style={StyleSheet.absoluteFill}
+                              />
+                              <Ionicons name="trash-outline" size={20} color={colors.text.light} />
+                              <Text style={styles.buttonText}>Zurückziehen</Text>
+                            </TouchableOpacity>
+                          )}
+                        </View>
+                      </LinearGradient>
+                    </View>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
+            {/* Friends List - Vertical Scrolling */}
+            <View style={[
+              styles.friendsSection, 
+              !(incomingRequests.length > 0 || outgoingRequests.length > 0) && { marginTop: 0 }
+            ]}>
+              <Text style={styles.sectionTitle}>Freunde</Text>
+              {acceptedFriendships.length === 0 ? (
+                <EmptyFriendsList />
+              ) : (
+                <View>
+                  {acceptedFriendships.map(item => (
+                    <View key={item['friendship-id']} style={styles.friendCard}>
+                      <LinearGradient
+                        colors={[colors.background.secondary, colors.background.secondary]}
+                        style={styles.friendCardContent}
+                      >
+                        <TouchableOpacity 
+                          style={styles.friendHeader}
+                          onPress={() => handleInspect(item)}
+                        >
+                          {item.images?.[0] && (
+                            <Image 
+                              src={item.images[0].url}
+                              style={styles.profileImage}
+                            />
+                          )}
+                          <View style={styles.friendInfo}>
+                            <Text style={styles.name}>{item.friendName}</Text>
+                            <View style={styles.badge}>
+                              <Text style={styles.badgeText}>
+                                <Text style={styles.statusDot}>●{' '}</Text>
+                                Verbunden
+                              </Text>
+                            </View>
+                          </View>
+                          <Ionicons name="chevron-forward" size={34} color={colors.text.secondary} />
+                        </TouchableOpacity>
+
+                        {item.displayedPhone && (
+                          <View style={styles.phoneContainer}>
+                            <Text style={styles.phone}>{item.displayedPhone}</Text>
+                            <TouchableOpacity onPress={() => handleCopyNumber(item)}>
+                              <Ionicons name="copy-outline" size={20} color={colors.text.secondary} />
+                            </TouchableOpacity>
+                          </View>
+                        )}
+
+                        <View style={styles.messageSection}>
+                          <Text style={styles.messageLabel}>ANSCHREIBEN VIA</Text>
+                          <View style={styles.messageButtons}>
+                            <TouchableOpacity 
+                              style={[styles.messageButton, styles.whatsappButton]}
+                              onPress={() => handleMessage(item, 'whatsapp')}
+                            >
+                              <Ionicons name="logo-whatsapp" size={20} color={'#25D366'} />
+                              <Text style={styles.whatsappButtonText}>WhatsApp</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity 
+                              style={[styles.messageButton, styles.smsButton]}
+                              onPress={() => handleMessage(item, 'sms')}
+                            >
+                              <Ionicons name="chatbubble-outline" size={20} color={colors.text.primary} />
+                              <Text style={styles.smsButtonText}>SMS</Text>
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      </LinearGradient>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
+          </ScrollView>
         </View>
-      </View>
+      )}
     </SafeAreaWrapper>
   )
 }
@@ -395,6 +476,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 16,
     marginTop: 24,
+    paddingBottom: 20,
   },
   sectionTitle: {
     fontSize: 20,
@@ -407,14 +489,13 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   requestCard: {
-    width: 200,
-    minHeight: 140,
+    width: 260,
   },
   friendCard: {
     marginBottom: 12,
   },
   requestCardContent: {
-    padding: 16,
+    padding: 10,
     borderRadius: 16,
   },
   friendCardContent: {
@@ -425,44 +506,53 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 12,
+    paddingVertical: 4,
   },
   name: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '600',
     color: colors.text.primary,
   },
   badge: {
-    backgroundColor: colors.accent.primary + '20',
+    backgroundColor: colors.accent.primary + '10',
+    alignSelf: 'flex-start',
     paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    marginTop: 4,
   },
   badgeText: {
     color: colors.accent.primary,
-    fontSize: 12,
-    fontWeight: '500',
+    fontSize: 11,
+    fontWeight: '600',
+    textAlign: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   phoneContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: 12,
   },
   phone: {
     fontSize: 14,
-    color: colors.text.secondary,
+    color: colors.text.primary,
   },
   actionButtons: {
     flexDirection: 'row',
+    justifyContent: 'center',
     gap: 8,
-    marginTop: 12,
   },
   button: {
-    flex: 1,
+    flexDirection: 'row',
     paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 16,
+    paddingHorizontal: 16,
+    borderRadius: 20,
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+    minWidth: 100,
   },
   acceptButton: {
     backgroundColor: colors.accent.primary,
@@ -471,29 +561,45 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: 'transparent',
   },
+  messageSection: {
+    marginTop: 16,
+  },
+  messageLabel: {
+    fontSize: 13,
+    color: colors.text.secondary,
+    marginBottom: 8,
+    marginLeft: 4,
+  },
   messageButtons: {
     flexDirection: 'row',
     gap: 8,
-    marginTop: 12,
   },
   messageButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    padding: 12,
-    borderRadius: 12,
+    gap: 6,
+    padding: 10,
+    borderRadius: 20,
+    maxHeight: 40,
   },
   whatsappButton: {
-    backgroundColor: '#25D366',
+    borderWidth: 1,
+    borderColor: '#25D366',
   },
   smsButton: {
-    backgroundColor: colors.accent.primary,
+    borderWidth: 1,
+    borderColor: colors.text.primary,
   },
-  messageButtonText: {
-    color: colors.text.light,
-    fontSize: 14,
+  smsButtonText: {
+    color: colors.text.primary,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  whatsappButtonText: {
+    color: '#25D366',
+    fontSize: 13,
     fontWeight: '600',
   },
   buttonText: {
@@ -509,10 +615,50 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    marginBottom: 12,
   },
   friendInfo: {
     flex: 1,
     marginLeft: 12,
+    marginRight: 8,
+  },
+  backButton: {
+    padding: 8,
+  },
+  emptyContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: colors.text.secondary,
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 24,
+  },
+  findButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: colors.accent.primary,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+  },
+  findButtonText: {
+    color: colors.text.light,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  content: {
+    flex: 1,
+  },
+  statusDot: {
+    fontSize: 8,
+    color: colors.accent.primary,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
+    marginBottom: 2,
   },
 }) 

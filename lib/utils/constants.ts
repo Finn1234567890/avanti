@@ -3,6 +3,8 @@ export const IMAGE_LIMITS = {
   MAX_IMAGES: 6
 } as const
 
+export const TESTING_TUTORIAL = true
+
 export const INTERESTS = [
   'Sport & Fitness',
   'Reisen',

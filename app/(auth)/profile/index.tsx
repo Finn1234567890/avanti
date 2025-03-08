@@ -187,7 +187,7 @@ export default function Profile() {
       if (error) throw error
       
       await signOut()
-      router.replace('/(public)')
+      router.replace('/(public)/welcome')
     } catch (error) {
       console.error('Error signing out:', error)
       Alert.alert('Error', 'Failed to sign out')

@@ -11,12 +11,14 @@ import * as Haptics from 'expo-haptics'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { colors } from '../../../lib/theme/colors'
 import { Ionicons } from '@expo/vector-icons'
+import { Storage } from '../../../lib/utils/storage'
+import { TutorialOverlay } from './components/TutorialOverlay'
+import { TESTING_TUTORIAL } from '../../../lib/utils/constants'
 
 const PROFILES_PER_PAGE = 5
 const BOTTOM_NAV_HEIGHT = Platform.OS === 'ios' ? 83 : 60
 const { height } = Dimensions.get('window')
 const SCREEN_HEIGHT = height - BOTTOM_NAV_HEIGHT
-
 
 export default function Home() {
   const { session } = useAuth()
@@ -32,9 +34,23 @@ export default function Home() {
   const [refreshing, setRefreshing] = useState(false)
   const insets = useSafeAreaInsets()
   const [currentIndex, setCurrentIndex] = useState(0)
+  const [shouldShowTutorial, setShouldShowTutorial] = useState(false)
 
   useEffect(() => {
     loadProfiles()
+  }, [])
+
+  useEffect(() => {
+    const checkTutorialStatus = async () => {
+      if (TESTING_TUTORIAL) {
+        setShouldShowTutorial(true)
+        return
+      }
+      const hasSeenTutorial = await Storage.getHasSeenTutorial()
+      setShouldShowTutorial(!hasSeenTutorial)
+    }
+    
+    checkTutorialStatus()
   }, [])
 
   const loadProfiles = async (pageNumber = 0) => {
@@ -134,6 +150,14 @@ export default function Home() {
     setRefreshing(false)
   }, [])
 
+  const handleDismissTutorial = async () => {
+    // Set a small delay before dismissing
+    setTimeout(async () => {
+      await Storage.setHasSeenTutorial(true)
+      setShouldShowTutorial(false)
+    }, 500) // 0.5 seconds (was 1.5 seconds)
+  }
+
   if (loading && profiles.length === 0) {
     return <LoadingView />
   }
@@ -156,31 +180,37 @@ export default function Home() {
         </View>
       </View>
       <View style={styles.container}>
-        <FlatList
-          data={profiles}
-          keyExtractor={(item) => item['P-ID']}
-          renderItem={({ item, index }) => (
-            <ProfileCard
-              profile={item}
-              preview={false}
-            />
+        <View style={styles.content}>
+          <FlatList
+            data={profiles}
+            keyExtractor={(item) => item['P-ID']}
+            renderItem={({ item, index }) => (
+              <ProfileCard
+                profile={item}
+                preview={false}
+              />
+            )}
+            pagingEnabled
+            snapToInterval={SCREEN_HEIGHT - 112}
+            decelerationRate="fast"
+            viewabilityConfig={viewabilityConfig.current}
+            onViewableItemsChanged={onViewableItemsChanged}
+            onEndReached={handleEndReached}
+            onEndReachedThreshold={0.5}
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor={colors.accent.primary}
+              />
+            }
+          />
+          
+          {shouldShowTutorial && (
+            <TutorialOverlay onDismiss={handleDismissTutorial} />
           )}
-          pagingEnabled
-          snapToInterval={SCREEN_HEIGHT - 112}
-          decelerationRate="fast"
-          viewabilityConfig={viewabilityConfig.current}
-          onViewableItemsChanged={onViewableItemsChanged}
-          onEndReached={handleEndReached}
-          onEndReachedThreshold={0.5}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor={colors.accent.primary}
-            />
-          }
-        />
+        </View>
       </View>
     </SafeAreaWrapper>
   )
@@ -215,5 +245,8 @@ const styles = StyleSheet.create({
   },
   headerButton: {
     padding: 4,
+  },
+  content: {
+    flex: 1,
   },
 }) 
