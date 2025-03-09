@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, Keyboard } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { router } from 'expo-router'
 import * as Haptics from 'expo-haptics'
@@ -16,6 +16,7 @@ type Props = {
   buttonDisabled?: boolean
   hint?: string
   useKeyboardAvoid?: boolean
+  keepKeyboardUp?: boolean
 }
 
 export function OnboardingScreenLayout({
@@ -30,11 +31,15 @@ export function OnboardingScreenLayout({
   buttonDisabled = false,
   hint,
   useKeyboardAvoid = true,
+  keepKeyboardUp = false,
 }: Props) {
   const ContentWrapper = useKeyboardAvoid ? KeyboardAvoidingView : View
 
   const handlePress = async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+    if (!keepKeyboardUp) {
+      Keyboard.dismiss()
+    }
     onNext()
   }
 
@@ -44,15 +49,15 @@ export function OnboardingScreenLayout({
       style={styles.container}
     >
       <View style={styles.content}>
-        
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={onBack || (() => router.back())}
-        >
-          <Ionicons name="chevron-back" size={32} color={colors.text.primary} />
-        </TouchableOpacity>
+        {onBack && (
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={onBack || (() => router.back())}
+          >
+            <Ionicons name="chevron-back" size={32} color={colors.text.primary} />
+          </TouchableOpacity>)}
 
-        <View style={styles.headerContainer}>
+        <View style={onBack ? styles.headerContainer : styles.headerContainerNoBack}>
           <Text style={styles.title}>
             {title}{'\n'}
             <Text style={styles.highlight}>{subtitle}</Text>
@@ -104,9 +109,16 @@ const styles = StyleSheet.create({
     padding: 8,
     zIndex: 1,
   },
+  backButtonDisabled: {
+    opacity: 0.5,
+  },
   headerContainer: {
     alignItems: 'flex-start',
-    marginTop: 50,
+    marginTop: 40,
+  },
+  headerContainerNoBack: {
+    alignItems: 'flex-start',
+    marginTop: 10,
   },
   title: {
     fontSize: 32,
@@ -151,4 +163,5 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
   },
+
 }) 

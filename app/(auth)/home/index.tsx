@@ -13,9 +13,9 @@ import { colors } from '../../../lib/theme/colors'
 import { Ionicons } from '@expo/vector-icons'
 import { Storage } from '../../../lib/utils/storage'
 import { TutorialOverlay } from './components/TutorialOverlay'
-import { TESTING_TUTORIAL } from '../../../lib/utils/constants'
+import { TESTING_TUTORIAL, PROFILES_PER_PAGE } from '../../../lib/utils/constants'
+import { router } from 'expo-router'
 
-const PROFILES_PER_PAGE = 5
 const BOTTOM_NAV_HEIGHT = Platform.OS === 'ios' ? 83 : 60
 const { height } = Dimensions.get('window')
 const SCREEN_HEIGHT = height - BOTTOM_NAV_HEIGHT
@@ -174,7 +174,7 @@ export default function Home() {
           <TouchableOpacity style={styles.headerButton}>
             <Ionicons name="arrow-undo" size={24} color={colors.text.primary} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.headerButton}>
+          <TouchableOpacity style={styles.headerButton} onPress={() => router.push('/(auth)/profile')}>
             <Ionicons name="menu" size={24} color={colors.text.primary} />
           </TouchableOpacity>
         </View>

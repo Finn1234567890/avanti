@@ -3,7 +3,9 @@ export const IMAGE_LIMITS = {
   MAX_IMAGES: 6
 } as const
 
-export const TESTING_TUTORIAL = false
+export const TESTING_TUTORIAL = true 
+
+export const PROFILES_PER_PAGE = 3
 
 export const INTERESTS = [
   'Sport & Fitness',
