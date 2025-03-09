@@ -126,7 +126,7 @@ export function ImagesStep({ onBack }: OnboardingStepProps) {
           continue
         }
 
-        console.log("image upload", image)
+        console.log("image upload" )
         
         await uploadImage({
           base64Image: image.base64,

@@ -5,7 +5,7 @@ import { OnboardingStepProps } from '../../lib/types/onboarding'
 import { OnboardingScreenLayout } from '../OnboardingScreenLayout'
 import { colors } from '../../lib/theme/colors'
 
-export function NameStep({ onNext }: OnboardingStepProps) {
+export function NameStep({ onNext, onBack }: OnboardingStepProps) {
   const [name, setName] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -45,14 +45,13 @@ export function NameStep({ onNext }: OnboardingStepProps) {
 
   return (
     <OnboardingScreenLayout
-      
       title="Wie ist dein"
       subtitle="Name?"
       onNext={handleNext}
-      loading={loading}
-      error={error}
+      onBack={onBack}
       buttonDisabled={!name.trim()}
-      hint="Dein Vorname reicht uns"
+      error={error}
+      keepKeyboardUp={true}
     >
       <TextInput
         style={[

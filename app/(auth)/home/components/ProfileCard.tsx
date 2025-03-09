@@ -392,7 +392,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   bio: {
-    width: '85%',
+    width: '80%',
     fontSize: 14,
     color: colors.text.light,
     opacity: 0.9,

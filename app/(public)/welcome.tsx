@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native'
 import { router } from 'expo-router'
 import { colors } from '../../lib/theme/colors'
 import { LinearGradient } from 'expo-linear-gradient'
@@ -17,8 +17,14 @@ export default function Welcome() {
           <View style={styles.headerContainer}>
             <Text style={styles.logo}>Avanti</Text>
             <Text style={styles.title}>
-              Freundschaften an der{'\n'}
-              <Text style={styles.highlight}>Uni Hamburg</Text>
+              Dein Netzwerk an der{'\n'}
+              <View style={styles.uniContainer}>
+                <Image 
+                  source={require('../../assets/images/uni-hamburg-icon.webp')}
+                  style={styles.uniIcon}
+                />
+                <Text style={styles.highlight}>UHH</Text>
+              </View>
             </Text>
           </View>
 
@@ -72,8 +78,11 @@ const styles = StyleSheet.create({
   },
   title: {
     marginTop: 40,
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 24,
+    flexDirection: 'row',
+    width: '100%',
+    fontWeight: '600',
+    justifyContent: 'center',
     color: colors.text.light,
     textAlign: 'center',
     marginBottom: 20,
@@ -82,9 +91,23 @@ const styles = StyleSheet.create({
     width: '100%',
     gap: 10,
   },
+  uniContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  uniIcon: {
+    width: 35,
+    height: 35,
+    borderRadius: 5,
+    resizeMode: 'contain',
+  },
   highlight: {
-    fontSize: 30,
+    fontSize: 32,
     fontWeight: '800',
+    color: colors.background.primary,
   },
   signInButton: {
     backgroundColor: colors.primary,

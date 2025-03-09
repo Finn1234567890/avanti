@@ -3,6 +3,7 @@ import { useState, useRef } from 'react'
 import { SafeAreaWrapper } from '../../components/SafeAreaWrapper'
 import { OnboardingProgress } from '../../components/OnboardingProgress'
 import { NameStep } from '../../components/onboarding/NameStep'
+import WelcomeStep from '../../components/onboarding/WelcomeStep'
 import { MajorStep } from '../../components/onboarding/MajorStep'
 import { BioStep } from '../../components/onboarding/BioStep'
 import { InterestsStep } from '../../components/onboarding/InterestsStep'
@@ -11,7 +12,7 @@ import { colors } from '../../lib/theme/colors'
 import { useAuth } from '../../lib/context/auth'
 import { router } from 'expo-router'
 
-export const TOTAL_STEPS = 5
+export const TOTAL_STEPS = 6
 
 export default function Onboarding() {
   const { session } = useAuth()
@@ -72,11 +73,12 @@ export default function Onboarding() {
 
     return (
       <Animated.View style={[styles.stepContainer, animatedStyle]}>
-        {currentStep === 1 && <NameStep onNext={handleNext} />}
-        {currentStep === 2 && <MajorStep onNext={handleNext} onBack={handleBack} />}
-        {currentStep === 3 && <BioStep onNext={handleNext} onBack={handleBack} />}
-        {currentStep === 4 && <InterestsStep onNext={handleNext} onBack={handleBack} />}
-        {currentStep === 5 && <ImagesStep onNext={handleNext} onBack={handleBack} />}
+        {currentStep === 1 && <WelcomeStep onNext={handleNext} />}
+        {currentStep === 2 && <NameStep onNext={handleNext} onBack={handleBack} />}
+        {currentStep === 3 && <MajorStep onNext={handleNext} onBack={handleBack} />}
+        {currentStep === 4 && <BioStep onNext={handleNext} onBack={handleBack} />}
+        {currentStep === 5 && <InterestsStep onNext={handleNext} onBack={handleBack} />}
+        {currentStep === 6 && <ImagesStep onNext={handleNext} onBack={handleBack} />}
       </Animated.View>
     )
   }
