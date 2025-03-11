@@ -9,7 +9,7 @@ import * as Clipboard from 'expo-clipboard'
 import { Ionicons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
 import { colors } from '../../../lib/theme/colors'
-import type { ProfileEntry } from '../profile/types'
+import { ProfileEntry } from '@/lib/types/profile'
 import { Profile } from '../home/types'
 import { ProfileCard } from '../home/components/ProfileCard'
 import { router } from 'expo-router'
@@ -269,6 +269,8 @@ export default function Friends() {
               major: isInspecting.major,
               description: isInspecting.description || '',
               tags: isInspecting.tags || [],
+              preferences: isInspecting.preferences || [],
+              degreeType: isInspecting.degreeType,
               images: isInspecting.images,
             }} 
             preview={true}

@@ -1,5 +1,4 @@
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Alert } from 'react-native'
-import { Profile } from '../types'
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Alert, ActivityIndicator, Animated } from 'react-native'
 import { ImageIndicators } from './ImageIndicators'
 import { supabase } from '../../../../lib/supabase/supabase'
 import { useAuth } from '../../../../lib/context/auth'
@@ -11,15 +10,30 @@ import { GestureResponderEvent } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { openMessaging } from '../../../../lib/utils/messaging'
 import { Image as ExpoImage } from 'expo-image'
-
+import { Profile } from '../../../../lib/types/profile'
+import { PREFRENCES } from '../../../../lib/utils/constants'
+import { INTEREST_ICONS } from '../../../../components/onboarding/InterestsStep'
+type PreferenceKey = typeof PREFRENCES[number]
 const SCREEN_HEIGHT = Dimensions.get('window').height
 
+const PREFERENCE_ICONS = {
+  'Lerngruppen oder Lernpartner': 'people',
+  'Nachhilfe anbieten oder suchen': 'school',
+  'Studentenpartys & Feiern gehen': 'beer',
+  'Studiengangübergreifende Kontakte': 'globe',
+  'Projekt oder Startup Partner': 'rocket',
+  'Gaming & E-Sports Gruppen': 'game-controller',
+} as const
 
 export function ProfileCard({ profile, preview }: { profile: Profile, preview: boolean }) {
   const { session } = useAuth()
   const [connectionStatus, setConnectionStatus] = useState<string | null>(null)
   const hasMultipleImages = profile.images && profile.images.length > 1
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  const [isConnecting, setIsConnecting] = useState(false)
+  const [rotationValue] = useState(new Animated.Value(0))
+  const [scaleValue] = useState(new Animated.Value(1))
+  const [buttonColorValue] = useState(new Animated.Value(0))
 
   useEffect(() => {
     checkExistingConnection() 
@@ -51,28 +65,83 @@ export function ProfileCard({ profile, preview }: { profile: Profile, preview: b
   }
 
 
+  const animateButton = () => {
+    // Reset values
+    rotationValue.setValue(0)
+    scaleValue.setValue(1)
+    buttonColorValue.setValue(0)
+
+    Animated.parallel([
+      // Rotation animation for icon
+      Animated.timing(rotationValue, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: false,
+      }),
+      // Scale pulse animation
+      Animated.sequence([
+        Animated.timing(scaleValue, {
+          toValue: 1.1,
+          duration: 200,
+          useNativeDriver: false,
+        }),
+        Animated.timing(scaleValue, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: false,
+        }),
+      ]),
+      // Enhanced color transition with longer glow
+      Animated.sequence([
+        // Quick transition to magenta
+        Animated.timing(buttonColorValue, {
+          toValue: 0.5,
+          duration: 250,
+          useNativeDriver: false,
+        }),
+        // Extended hold at magenta
+        Animated.delay(500),
+        // Slower transition to final green
+        Animated.timing(buttonColorValue, {
+          toValue: 1,
+          duration: 450,
+          useNativeDriver: false,
+        }),
+      ]),
+    ]).start()
+  }
+
   const handleConnect = async () => {
     try {
-      await Haptics.notificationAsync(
-        Haptics.NotificationFeedbackType.Success
-      )
       if (!session?.user?.id) return
 
-      if(connectionStatus === 'pending') {
+      // If there's a pending request, cancel it
+      if (connectionStatus === 'pending') {
+        // Reset animation values immediately when canceling
+        rotationValue.setValue(0)
+        buttonColorValue.setValue(0)
+        scaleValue.setValue(1)
+        
         const { error } = await supabase
           .from('Friendships')
-          .update({
-            status: 'accepted'
+          .delete()
+          .match({
+            'requester-ID': session.user.id,
+            'receiver-ID': profile['User-ID'],
+            'status': 'pending'
           })
-          .eq('requester-ID', profile['User-ID'])
-          .eq('receiver-ID', session.user.id)
 
         if (error) throw error
 
-        setConnectionStatus('accepted')
-        Alert.alert('Success', 'Connection request accepted!')
+        setConnectionStatus(null)
         return
       }
+
+      // Original connect logic with animation
+      animateButton()
+      await Haptics.notificationAsync(
+        Haptics.NotificationFeedbackType.Success
+      )
 
       const { error } = await supabase
         .from('Friendships')
@@ -82,17 +151,20 @@ export function ProfileCard({ profile, preview }: { profile: Profile, preview: b
           'status': 'pending'
         })
 
-      setConnectionStatus('pending')
-
       if (error) throw error
 
-      Alert.alert('Success', 'Connection request sent!')
+      setConnectionStatus('pending')
     } catch (error) {
+      // Reset animation values on error
+      rotationValue.setValue(0)
+      buttonColorValue.setValue(0)
+      scaleValue.setValue(1)
+      
       await Haptics.notificationAsync(
         Haptics.NotificationFeedbackType.Error
       )
-      console.error('Error sending connection request:', error)
-      Alert.alert('Error', 'Failed to send connection request')
+      console.error('Error handling connection request:', error)
+      Alert.alert('Error', 'Failed to handle connection request')
     }
   }
 
@@ -133,26 +205,47 @@ export function ProfileCard({ profile, preview }: { profile: Profile, preview: b
     })
   }
 
+  const renderPreferences = () => {
+    if (!profile.preferences) return null;
+    
+    const preferences = Array.isArray(profile.preferences) 
+      ? profile.preferences 
+      : [profile.preferences];
+
+    return (
+      <View style={styles.preferencesContainer}>
+        {preferences.map((pref, index) => (
+          <View key={index} style={styles.preferenceTag}>
+            <Ionicons 
+              name={PREFERENCE_ICONS[pref as PreferenceKey]}
+              size={16} 
+              color={colors.text.light}
+              style={styles.preferenceIcon} 
+            />
+            <Text style={styles.preferenceText}>{pref}</Text>
+          </View>
+        ))}
+      </View>
+    );
+  };
+
   const renderFirstScreen = () => (
     <LinearGradient
       colors={[
         'transparent',
-        'rgba(0,0,0,0.4)',
-        'rgba(0,0,0,0.8)'
+        'rgba(0,0,0,0.6)',
+        'rgba(0,0,0,0.95)'
       ]}
-      style={styles.gradient}
+      style={styles.firstScreenGradient}
     >
       <View style={styles.profileInfo}>
-        <View style={styles.headerContainer}>
-          <View style={styles.nameContainer}>
-            <Text style={styles.name}>{profile.name}</Text>
-            {renderMajorWithIcon()}
-          </View>
-        </View>
-
-        <Text style={styles.bio} numberOfLines={8}>
+        <Text style={styles.name}>{profile.name}</Text>
+        {renderMajorWithIcon()}
+        <Text style={styles.bio} numberOfLines={5}>
           {profile.description}
         </Text>
+        <View style={styles.divider} />
+        {renderPreferences()}
       </View>
     </LinearGradient>
   )
@@ -175,7 +268,7 @@ export function ProfileCard({ profile, preview }: { profile: Profile, preview: b
         </View>
 
         <View style={styles.tagsContainer}>
-          {profile.tags.map((tag, index) => (
+          {profile.tags?.map((tag: string, index: number) => (
             <View key={index} style={styles.tag}>
               <Text style={styles.tagText}>{tag}</Text>
             </View>
@@ -201,10 +294,6 @@ export function ProfileCard({ profile, preview }: { profile: Profile, preview: b
             {renderMajorWithIcon()}
           </View>
         </View>
-
-        <View style={styles.tagsContainer}>
-          
-        </View>
       </View>
     </LinearGradient>
   )
@@ -214,12 +303,40 @@ export function ProfileCard({ profile, preview }: { profile: Profile, preview: b
       <Ionicons 
         name="school" 
         size={18} 
-        color={colors.accent.secondary} 
+        color={'white'} 
         style={styles.majorIcon} 
       />
-      <Text style={styles.major}>{profile.major}</Text>
+      <Text style={styles.major}>
+        {profile.major}
+        {profile.semester && ` • ${profile.semester}. Semester`}
+      </Text>
     </View>
   )
+
+  const buttonBackgroundColor = buttonColorValue.interpolate({
+    inputRange: [0, 0.2, 0.8, 1],
+    outputRange: [
+      'white', 
+      colors.accent.secondary,
+      colors.accent.secondary,
+      colors.accent.primary
+    ]
+  })
+
+  const shadowOpacity = buttonColorValue.interpolate({
+    inputRange: [0, 0.2, 0.8, 1],
+    outputRange: [0.1, 0.5, 0.5, 0.2]
+  })
+
+  const shadowRadius = buttonColorValue.interpolate({
+    inputRange: [0, 0.2, 0.8, 1],
+    outputRange: [2, 8, 8, 2]
+  })
+
+  const buttonTextColor = buttonColorValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['black', colors.text.light]
+  })
 
   return (
     <View style={styles.cardContainer}>
@@ -238,7 +355,6 @@ export function ProfileCard({ profile, preview }: { profile: Profile, preview: b
                 transition={200}
                 cachePolicy="memory-disk"
               />
-              {/* Remove button from header gradient */}
               <LinearGradient
                 colors={[
                   'rgba(0,0,0,0.6)',
@@ -262,37 +378,73 @@ export function ProfileCard({ profile, preview }: { profile: Profile, preview: b
           )}
         </TouchableOpacity>
         
-        {/* Floating connect button */}
+        {/* Floating connect button - moved outside of screens */}
         {!preview && (
-          <TouchableOpacity 
-          style={[
-            styles.connectButton,
-            connectionStatus === 'accepted' && styles.messageButton,
-            connectionStatus === 'pending' && styles.connectButtonDisabled
-          ]}
-          onPress={connectionStatus === 'accepted' ? handleMessage : handleConnect}
-          disabled={connectionStatus === 'pending'}
-        >
-          <Ionicons 
-            name={
-              connectionStatus === 'accepted' 
-                ? "chatbubble-outline" 
-                : connectionStatus === 'pending' 
-                  ? "checkmark" 
-                  : "person-add"
-            } 
-            size={28} 
-            color={
-              connectionStatus === 'accepted'
-                ? colors.text.light
-                : connectionStatus === 'pending'
-                  ? colors.accent.secondary
-                  : colors.text.light
-            } 
-          />
-        </TouchableOpacity>
+          <View style={styles.bottomButtonContainer}>
+            <Animated.View
+              style={[
+                styles.connectButtonContainer,
+                {
+                  backgroundColor: connectionStatus === 'pending' 
+                    ? colors.accent.primary 
+                    : buttonBackgroundColor,
+                  transform: [{ scale: scaleValue }],
+                  shadowOpacity: shadowOpacity,
+                  shadowRadius: shadowRadius,
+                  shadowColor: colors.accent.secondary,
+                  shadowOffset: { width: 0, height: 0 },
+                  elevation: 6,
+                }
+              ]}
+            >
+              <TouchableOpacity 
+                style={styles.connectButton}
+                onPress={connectionStatus === 'accepted' ? handleMessage : handleConnect}
+              >
+                {connectionStatus === 'accepted' ? (
+                  <Ionicons 
+                    name="chatbubble-outline"
+                    size={28} 
+                    color={colors.text.light}
+                  />
+                ) : (
+                  <View style={styles.connectButtonContent}>
+                    <Text 
+                      style={[
+                        styles.connectButtonText,
+                        { 
+                          color: connectionStatus === 'pending' 
+                            ? colors.text.light 
+                            : "black"
+                        }
+                      ]}
+                    >
+                      {connectionStatus === 'pending' ? 'Angefragt' : 'Verbinden'}
+                    </Text>
+                    <Animated.View
+                      style={{
+                        transform: [{
+                          rotate: rotationValue.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: ['0deg', '360deg']
+                          })
+                        }]
+                      }}
+                    >
+                      <Ionicons 
+                        name={connectionStatus === 'pending' ? 'checkmark' : 'link'}
+                        size={18} 
+                        color={connectionStatus === 'pending' 
+                          ? colors.text.light 
+                          : 'black'}
+                      />
+                    </Animated.View>
+                  </View>
+                )}
+              </TouchableOpacity>
+            </Animated.View>
+          </View>
         )}
-        
       </View>
     </View>
   )
@@ -334,14 +486,15 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: '45%', // Increased slightly for better text visibility
+    height: '45%',
     justifyContent: 'flex-end',
-    borderBottomLeftRadius: 20, // Match parent border radius
+    borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
   },
   profileInfo: {
     padding: 20,
-    paddingBottom: 30,
+    marginBottom: 50,
+    gap: 12,
   },
   headerContainer: {
     width: '100%',
@@ -355,23 +508,21 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   name: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: '600',
     color: colors.text.light,
   },
   majorContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 4,
   },
   majorIcon: {
-    marginRight: 6,
-    opacity: 0.9,
+    marginRight: 8,
   },
   major: {
-    fontSize: 18,
+    fontSize: 14,
     color: colors.text.light,
-    opacity: 0.9,
+    opacity: 0.95,
   },
   tagsContainer: {
     width: '80%',
@@ -392,38 +543,32 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   bio: {
-    width: '80%',
-    fontSize: 14,
+    fontSize: 16,
     color: colors.text.light,
     opacity: 0.9,
-    fontWeight: '300',
-    lineHeight: 24,
+    lineHeight: 22,
+    letterSpacing: 0.2,
+  },
+  connectButtonContainer: {
+    borderRadius: 20,
+    minWidth: 140,
+    overflow: 'visible',
   },
   connectButton: {
-    position: 'absolute',
-    bottom: 15,
-    right: 15,
-    backgroundColor: colors.accent.primary,
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    justifyContent: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 8,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-    zIndex: 10,
   },
-  connectButtonDisabled: {
-    borderWidth: 2,
-    borderColor: colors.accent.secondary,
-    backgroundColor: colors.background.secondary,
-    opacity: 0.9,
+  connectButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  connectButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   headerGradient: {
     position: 'absolute',
@@ -433,7 +578,50 @@ const styles = StyleSheet.create({
     height: 120,
     justifyContent: 'flex-start',
   },
-  messageButton: {
+  preferencesContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  preferenceTag: {
     backgroundColor: colors.accent.secondary,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  preferenceIcon: {
+    marginRight: 6,
+  },
+  preferenceText: {
+    color: colors.text.light,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  firstScreenGradient: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '65%',
+    justifyContent: 'flex-end',
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    paddingBottom: 12,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: colors.text.light,
+    opacity: 0.2,
+    marginVertical: 4,
+  },
+  bottomButtonContainer: {
+    position: 'absolute',
+    bottom: 20,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 }) 

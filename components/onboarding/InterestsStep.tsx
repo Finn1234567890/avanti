@@ -1,15 +1,45 @@
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native'
 import { useState, useEffect } from 'react'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { OnboardingStepProps } from '../../lib/types/onboarding'
 import { OnboardingScreenLayout } from '../OnboardingScreenLayout'
 import { colors } from '../../lib/theme/colors'
-import { INTERESTS } from '../../lib/utils/constants'
+import { RECREATIONAL_INTERESTS, ACADEMIC_INTERESTS } from '../../lib/utils/constants'
+import * as Haptics from 'expo-haptics'
+import { Ionicons } from '@expo/vector-icons'
+
+// Map interests to icons
+export const INTEREST_ICONS = {
+  'Sport / Fitness': 'fitness',
+  'Gym': 'barbell',
+  'Gaming': 'game-controller',
+  'Bars': 'beer',
+  'Fotografie': 'camera',
+  'Musik machen': 'musical-notes',
+  'Musik hören': 'headset',
+  'Coffee': 'cafe',
+  'Tanzen': 'musical-note',
+  'Mit Freunden': 'people',
+  'Kochen & Backen': 'restaurant',
+  'Reisen & Kultur': 'airplane',
+  'Clubbing': 'wine',
+  'Raves': 'pulse',
+  'Filme & Serien': 'film',
+  'Kunst': 'brush',
+  'Wandern & Outdoor': 'trail-sign',
+  'Tabletop': 'dice',
+  'Ehrenamt & Soziales': 'heart',
+  // Academic icons
+  'Programmierung & IT': 'code-slash',
+  'Sprachen lernen': 'language',
+  'Laborarbeit & Experimente': 'flask',
+  'Wissenschaftliche Publikationen': 'document-text',
+  'Forschungsprojekte': 'telescope',
+} as const
 
 export function InterestsStep({ onNext, onBack }: OnboardingStepProps) {
   const [selectedInterests, setSelectedInterests] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     const loadStoredInterests = async () => {
@@ -25,35 +55,66 @@ export function InterestsStep({ onNext, onBack }: OnboardingStepProps) {
     loadStoredInterests()
   }, [])
 
-  const toggleInterest = (interest: string) => {
-    setSelectedInterests(prev => {
-      if (prev.includes(interest)) {
-        return prev.filter(i => i !== interest)
-      }
-      if (prev.length >= 5) return prev // Max 5 interests
-      return [...prev, interest]
-    })
-    setError(null)
+  const toggleInterest = async (interest: string) => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+    
+    const newInterests = selectedInterests.includes(interest)
+      ? selectedInterests.filter(i => i !== interest)
+      : [...selectedInterests, interest]
+    
+    setSelectedInterests(newInterests)
+    
+    try {
+      await AsyncStorage.setItem('onboarding_interests', JSON.stringify(newInterests))
+    } catch (e) {
+      console.error('Error storing interests:', e)
+    }
   }
 
-  const handleNext = async () => {
+  const handleNext = () => {
     if (selectedInterests.length < 2) {
       setError('Bitte wähle mindestens 2 Interessen')
       return
     }
-
-    setLoading(true)
-    setError(null)
-
-    try {
-      await AsyncStorage.setItem('onboarding_interests', JSON.stringify(selectedInterests))
-      onNext()
-    } catch (e) {
-      setError('Ein Fehler ist aufgetreten')
-    } finally {
-      setLoading(false)
-    }
+    onNext()
   }
+
+  const renderInterestPill = (interest: string) => (
+    <TouchableOpacity
+      key={interest}
+      style={[
+        styles.pill,
+        selectedInterests.includes(interest) && styles.pillSelected
+      ]}
+      onPress={() => toggleInterest(interest)}
+    >
+      {INTEREST_ICONS[interest as keyof typeof INTEREST_ICONS] && (
+        <Ionicons
+          name={INTEREST_ICONS[interest as keyof typeof INTEREST_ICONS] as keyof typeof Ionicons.glyphMap}
+          size={14}
+          color={selectedInterests.includes(interest) ? colors.background.primary : colors.text.secondary}
+          style={styles.icon}
+        />
+      )}
+      <Text
+        style={[
+          styles.pillText,
+          selectedInterests.includes(interest) && styles.pillTextSelected
+        ]}
+      >
+        {interest}
+      </Text>
+    </TouchableOpacity>
+  )
+
+  const renderInterestSection = (title: string, interests: readonly string[]) => (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      <View style={styles.pillContainer}>
+        {interests.map(renderInterestPill)}
+      </View>
+    </View>
+  )
 
   return (
     <OnboardingScreenLayout
@@ -61,36 +122,17 @@ export function InterestsStep({ onNext, onBack }: OnboardingStepProps) {
       subtitle="Interessen?"
       onNext={handleNext}
       onBack={onBack}
-      loading={loading}
-      error={error}
       buttonDisabled={selectedInterests.length < 2}
-      hint={`${selectedInterests.length}/2 · Wähle mindestens 2 Interessen`}
-      useKeyboardAvoid={false}
+      error={error}
+      buttonText={`${selectedInterests.length}/2 · Weiter`}
     >
-      <View style={styles.container}>
-        <View style={styles.pillContainer}>
-          {INTERESTS.map(interest => (
-            <TouchableOpacity
-              key={interest}
-              style={[
-                styles.pill,
-                selectedInterests.includes(interest) && styles.pillSelected
-              ]}
-              onPress={() => toggleInterest(interest)}
-              disabled={selectedInterests.length >= 5 && !selectedInterests.includes(interest)}
-            >
-              <Text 
-                style={[
-                  styles.pillText,
-                  selectedInterests.includes(interest) && styles.pillTextSelected
-                ]}
-              >
-                {interest}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
+      <ScrollView 
+        style={styles.container}
+        showsVerticalScrollIndicator={false}
+      >
+        {renderInterestSection('Freizeit & Hobbys', RECREATIONAL_INTERESTS)}
+        {renderInterestSection('Akademische Interessen', ACADEMIC_INTERESTS)}
+      </ScrollView>
     </OnboardingScreenLayout>
   )
 }
@@ -99,34 +141,43 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  section: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text.primary,
+    marginBottom: 12,
+    marginLeft: 4,
+  },
   pillContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 6,
-    paddingTop: 10,
+    gap: 8,
     alignItems: 'flex-start',
-    justifyContent: 'flex-start',
   },
   pill: {
     backgroundColor: colors.background.secondary,
-    borderRadius: 25,
-    borderWidth: 2,
+    borderRadius: 20,
+    borderWidth: 1.5,
     borderColor: colors.text.secondary,
-    paddingVertical: 8,
-    paddingHorizontal: 20,
-    marginBottom: 4,
-
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   pillSelected: {
-    color: colors.accent.secondary,
     backgroundColor: colors.accent.secondary,
     borderColor: colors.accent.secondary,
   },
+  icon: {
+    marginRight: 4,
+  },
   pillText: {
     color: colors.text.secondary,
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: '600',
-    textAlign: 'center',
   },
   pillTextSelected: {
     color: colors.background.primary,

@@ -4,17 +4,18 @@ import { useAuth } from '../../../lib/context/auth'
 import { supabase } from '../../../lib/supabase/supabase'
 import { SafeAreaWrapper } from '../../../components/SafeAreaWrapper'
 import { ProfileCard } from './components/ProfileCard'
-import { Profile } from './types'
 import { LoadingView } from './components/LoadingView'
 import { ErrorView } from './components/ErrorView'
 import * as Haptics from 'expo-haptics'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { colors } from '../../../lib/theme/colors'
 import { Ionicons } from '@expo/vector-icons'
 import { Storage } from '../../../lib/utils/storage'
 import { TutorialOverlay } from './components/TutorialOverlay'
 import { TESTING_TUTORIAL, PROFILES_PER_PAGE } from '../../../lib/utils/constants'
 import { router } from 'expo-router'
+import { sortBySimilarity } from '../../../lib/utils/similaritySort'
+import { ProfileEntry } from '../../../lib/types/profile'
+import { Profile } from '../../../lib/types/profile'
 
 const BOTTOM_NAV_HEIGHT = Platform.OS === 'ios' ? 83 : 60
 const { height } = Dimensions.get('window')
@@ -23,7 +24,7 @@ const SCREEN_HEIGHT = height - BOTTOM_NAV_HEIGHT
 export default function Home() {
   const { session } = useAuth()
   const [profiles, setProfiles] = useState<Profile[]>([])
-  const [currentImageIndexes, setCurrentImageIndexes] = useState<{[key: string]: number}>({})
+  const [userProfile, setUserProfile] = useState<ProfileEntry>()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [page, setPage] = useState(0)
@@ -32,12 +33,12 @@ export default function Home() {
     itemVisiblePercentThreshold: 10
   })
   const [refreshing, setRefreshing] = useState(false)
-  const insets = useSafeAreaInsets()
   const [currentIndex, setCurrentIndex] = useState(0)
   const [shouldShowTutorial, setShouldShowTutorial] = useState(false)
+  const [sortedProfiles, setSortedProfiles] = useState<ProfileEntry[]>([])
 
   useEffect(() => {
-    loadProfiles()
+    initializeProfiles()
   }, [])
 
   useEffect(() => {
@@ -53,31 +54,59 @@ export default function Home() {
     checkTutorialStatus()
   }, [])
 
-  const loadProfiles = async (pageNumber = 0) => {
+  const initializeProfiles = async () => {
     setLoading(true)
+    try {
+      // 1. Load user profile
+      const { data: userProfileData, error: userError } = await supabase
+        .from('Profile')
+        .select('*')
+        .eq('User-ID', session?.user?.id)
+        .single()
+
+      if (userError) throw userError
+      setUserProfile(userProfileData)
+
+      // 2. Get all profiles sorted by similarity and store their IDs
+      const sortedProfiles = await sortBySimilarity(userProfileData)
+      setSortedProfiles(sortedProfiles)
+
+      // 3. Load first page using the local sortedProfiles variable
+      await loadProfilePage(0, sortedProfiles)
+    } catch (e) {
+      console.error('Error initializing profiles:', e)
+      setError('Failed to load profiles')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const loadProfilePage = async (pageNumber: number, profilesOverride?: ProfileEntry[]) => {
     try {
       const from = pageNumber * PROFILES_PER_PAGE
       const to = from + PROFILES_PER_PAGE - 1
+      
+      // Use provided profiles or fall back to state
+      const profilesToUse = profilesOverride || sortedProfiles
+      const pageProfiles = profilesToUse.slice(from, to + 1)
 
-      // First, fetch profile data with image URLs
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('Profile')
-        .select(`
-          *,
-          images:Images(url)
-        `)
-        .neq('User-ID', session?.user?.id)
-        .order('created_at', { ascending: false })
-        .range(from, to)
+      console.log('Loading Profiles: ' + pageProfiles.length)
+      console.log('Profiles: ', pageProfiles)
+      
+      // Fetch images for this page of profiles
+      const profilesWithImages = await Promise.all(
+        pageProfiles.map(async (profile) => {
+          // Fetch images for this profile
+          const { data: imageData, error: imageError } = await supabase
+            .from('Images')
+            .select('url')
+            .eq('P-ID', profile['P-ID'])
 
-      if (profilesError) throw profilesError
+          if (imageError) throw imageError
 
-      // Get public URLs for all images
-      const profilesWithPublicUrls = await Promise.all(
-        profilesData.map(async (profile) => ({
-          ...profile,
-          images: await Promise.all(
-            profile.images.map(async (img: { url: string }) => {
+          // Get public URLs for all images
+          const imagesWithPublicUrls = await Promise.all(
+            (imageData || []).map(async (img: { url: string }) => {
               const { data: publicUrl } = supabase.storage
                 .from('public-images')
                 .getPublicUrl(img.url)
@@ -87,54 +116,41 @@ export default function Home() {
               }
             })
           )
-        }))
+
+          return {
+            ...profile,
+            images: imagesWithPublicUrls
+          }
+        })
       )
 
-      setHasMore(profilesData?.length === PROFILES_PER_PAGE)
-      
-      const newIndexes = profilesWithPublicUrls?.reduce((acc, profile) => ({
-        ...acc,
-        [profile['P-ID']]: 0
-      }), {})
-      
-      setCurrentImageIndexes(prev => ({ ...prev, ...newIndexes }))
+      setHasMore(pageProfiles.length === PROFILES_PER_PAGE)
       
       if (pageNumber === 0) {
-        setProfiles(profilesWithPublicUrls || [])
+        setProfiles(profilesWithImages)
       } else {
-        setProfiles(prev => [...prev, ...(profilesWithPublicUrls || [])])
+        setProfiles(prev => [...prev, ...profilesWithImages])
       }
+
     } catch (e) {
-      console.error('Error loading profiles:', e)
+      console.error('Error loading profile page:', e)
       setError('Failed to load profiles')
-    } finally {
-      setLoading(false)
     }
   }
 
-  // Handle reaching end of list
   const handleEndReached = () => {
     if (!hasMore || loading) return
     
     const nextPage = page + 1
     setPage(nextPage)
-    loadProfiles(nextPage)
-  }
-
-  // Handle image cycling
-  const handleImagePress = (profileId: string, imagesLength: number) => {
-    setCurrentImageIndexes(prev => ({
-      ...prev,
-      [profileId]: (prev[profileId] + 1) % imagesLength
-    }))
+    loadProfilePage(nextPage)
   }
 
   const handleRetry = () => {
     setPage(0)
-    loadProfiles(0)
+    initializeProfiles()
   }
 
-  // Handle viewability changes
   const onViewableItemsChanged = useCallback(({ viewableItems }: { viewableItems: ViewToken[] }) => {
     if (viewableItems.length > 0) {
       setCurrentIndex(viewableItems[0].index || 0)
@@ -145,17 +161,16 @@ export default function Home() {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
     setRefreshing(true)
     setProfiles([])  // Clear existing profiles
-    await loadProfiles(0)  // Reload from first page
+    await initializeProfiles()  // Reload everything from scratch
     setPage(0)  // Reset page counter
     setRefreshing(false)
   }, [])
 
   const handleDismissTutorial = async () => {
-    // Set a small delay before dismissing
     setTimeout(async () => {
       await Storage.setHasSeenTutorial(true)
       setShouldShowTutorial(false)
-    }, 500) // 0.5 seconds (was 1.5 seconds)
+    }, 500)
   }
 
   if (loading && profiles.length === 0) {
@@ -171,9 +186,6 @@ export default function Home() {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Avanti</Text>
         <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.headerButton}>
-            <Ionicons name="arrow-undo" size={24} color={colors.text.primary} />
-          </TouchableOpacity>
           <TouchableOpacity style={styles.headerButton} onPress={() => router.push('/(auth)/profile')}>
             <Ionicons name="menu" size={24} color={colors.text.primary} />
           </TouchableOpacity>
@@ -183,7 +195,7 @@ export default function Home() {
         <View style={styles.content}>
           <FlatList
             data={profiles}
-            keyExtractor={(item) => item['P-ID']}
+            keyExtractor={(item) => item['P-ID'] || ''}
             renderItem={({ item, index }) => (
               <ProfileCard
                 profile={item}

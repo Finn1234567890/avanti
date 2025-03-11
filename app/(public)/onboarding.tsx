@@ -11,8 +11,9 @@ import { ImagesStep } from '../../components/onboarding/ImagesStep'
 import { colors } from '../../lib/theme/colors'
 import { useAuth } from '../../lib/context/auth'
 import { router } from 'expo-router'
+import { PreferencesStep } from '../../components/onboarding/PreferencesStep'
 
-export const TOTAL_STEPS = 6
+export const TOTAL_STEPS = 7
 
 export default function Onboarding() {
   const { session } = useAuth()
@@ -76,9 +77,10 @@ export default function Onboarding() {
         {currentStep === 1 && <WelcomeStep onNext={handleNext} />}
         {currentStep === 2 && <NameStep onNext={handleNext} onBack={handleBack} />}
         {currentStep === 3 && <MajorStep onNext={handleNext} onBack={handleBack} />}
-        {currentStep === 4 && <BioStep onNext={handleNext} onBack={handleBack} />}
-        {currentStep === 5 && <InterestsStep onNext={handleNext} onBack={handleBack} />}
-        {currentStep === 6 && <ImagesStep onNext={handleNext} onBack={handleBack} />}
+        {currentStep === 4 && <PreferencesStep onNext={handleNext} onBack={handleBack} />}
+        {currentStep === 5 && <BioStep onNext={handleNext} onBack={handleBack} />}
+        {currentStep === 6 && <InterestsStep onNext={handleNext} onBack={handleBack} />}
+        {currentStep === 7 && <ImagesStep onNext={handleNext} onBack={handleBack} />}
       </Animated.View>
     )
   }

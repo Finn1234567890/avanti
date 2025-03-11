@@ -91,7 +91,10 @@ export function ImagesStep({ onBack }: OnboardingStepProps) {
     try {
       // Get all stored onboarding data
       const name = await AsyncStorage.getItem('onboarding_name')
+      const degreeType = await AsyncStorage.getItem('onboarding_degree_type')
+      const semester = await AsyncStorage.getItem('onboarding_semester') || null
       const major = await AsyncStorage.getItem('onboarding_major')
+      const preferences = JSON.parse(await AsyncStorage.getItem('onboarding_preferences') || '[]')
       const bio = await AsyncStorage.getItem('onboarding_bio')
       const interests = JSON.parse(await AsyncStorage.getItem('onboarding_interests') || '[]')
 
@@ -103,7 +106,10 @@ export function ImagesStep({ onBack }: OnboardingStepProps) {
           name,
           major,
           description: bio,
-          tags: interests
+          tags: interests,
+          degree_type: degreeType,
+          semester: semester,
+          preferences: preferences
         }])
 
       if (profileError) throw profileError
@@ -140,7 +146,10 @@ export function ImagesStep({ onBack }: OnboardingStepProps) {
         'onboarding_name',
         'onboarding_major',
         'onboarding_bio',
-        'onboarding_interests'
+        'onboarding_interests',
+        'onboarding_degree_type',
+        'onboarding_preferences',
+        'onboarding_semester'
       ])
 
       await refreshProfile()
@@ -161,9 +170,9 @@ export function ImagesStep({ onBack }: OnboardingStepProps) {
       onBack={onBack}
       loading={loading}
       error={error}
-      buttonText="Fertig"
+      buttonText={`${images.length}/${IMAGE_LIMITS.MIN_IMAGES} · Ferting`}
       buttonDisabled={images.length < IMAGE_LIMITS.MIN_IMAGES}
-      hint={`${images.length}/${IMAGE_LIMITS.MAX_IMAGES} · Wähle mindestens ${IMAGE_LIMITS.MIN_IMAGES} Bilder`}
+      hint={`Wähle bis zu ${IMAGE_LIMITS.MAX_IMAGES} Bilder. Keine Panik! Du kannst sie später noch bearbeiten`}
     >
       <View style={styles.container}>
         <View style={styles.imageGrid}>
