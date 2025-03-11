@@ -98,7 +98,7 @@ export default function Profile() {
 
       const { data, error } = await supabase
         .from('Profile')
-        .select('tags, name, major, P-ID, User-ID, created_at, description')
+        .select('tags, name, major, P-ID, User-ID, created_at, description, preferences, semester, degree_type')
         .eq('User-ID', session.user.id)
         .single()
         .returns<ProfileEntry>()

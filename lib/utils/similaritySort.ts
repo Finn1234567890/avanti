@@ -25,8 +25,13 @@ const getAllUserProfiles = async (user: ProfileEntry): Promise<ProfileEntry[]> =
     }
 } 
 
-const calculateSimilarityIndex = (user: ProfileEntry, profile: ProfileEntry) => {
+const calculateSimilarityIndex = async (user: ProfileEntry, profile: ProfileEntry) => {
     let similarityIndex = 0
+
+    if (user && profile) {
+        const penalty = await penaltilizedViewedProfile(profile, user)
+        similarityIndex -= penalty
+    }
 
     user.preferences?.forEach((preference) => {
         if (profile.preferences?.includes(preference)) {
@@ -58,11 +63,11 @@ export const sortBySimilarity = async (user: ProfileEntry) => {
 
     const profiles = await getAllUserProfiles(user)
 
-    profiles.forEach((profile) => {
-        const similarityIndex = calculateSimilarityIndex(user, profile)
+    for (const profile of profiles) {
+        const similarityIndex = await calculateSimilarityIndex(user, profile)
         const indexedEntry: EntryWithIndex = {profileEntry: profile, similarityIndex: similarityIndex}
         indexedEntries.push(indexedEntry)
-    })
+    }
 
     const sortedByHighestSimilarityWithIndex = indexedEntries.sort((a, b) => b.similarityIndex - a.similarityIndex)
 
@@ -71,4 +76,34 @@ export const sortBySimilarity = async (user: ProfileEntry) => {
     const sortedByHighestSimilarity = sortedByHighestSimilarityWithIndex.map((entry) => entry.profileEntry)
 
     return sortedByHighestSimilarity
+}
+
+
+const penaltilizedViewedProfile = async (profile: ProfileEntry, user: ProfileEntry) => {
+    console.log('Penalty for profile: ', profile['User-ID'])
+    let penalty = 0
+    const { data, error } = await supabase
+        .from('ProfileViews')
+        .select('viewed_at')
+        .eq('viewed_profile_id', profile['User-ID'])
+        .eq('user_id', user['User-ID'])
+    
+    if (error) {
+        console.log('Error fetching profile views:', error)
+        return penalty
+    }
+
+    // Check if data exists AND has at least one entry
+    if (data && data.length > 0) {
+        const viewedAt = data[0].viewed_at
+        const now = new Date()
+        const timeDiff = now.getTime() - new Date(viewedAt).getTime()
+        const hoursDiff = timeDiff / (1000 * 60 * 60)
+        // Logarithmic decay with base 2, rounded to 2 decimal places
+        penalty = 2 * Number((1 / (1 + Math.log2(1 + hoursDiff))).toFixed(2))
+    }
+
+    console.log('Penalty: ', penalty)
+    
+    return penalty
 }
