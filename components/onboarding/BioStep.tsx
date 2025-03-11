@@ -1,16 +1,78 @@
-import { TextInput, StyleSheet } from 'react-native'
+import { TextInput, StyleSheet, Text, View, TouchableWithoutFeedback, Keyboard } from 'react-native'
 import { useState, useRef, useEffect } from 'react'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { OnboardingStepProps } from '../../lib/types/onboarding'
 import { OnboardingScreenLayout } from '../OnboardingScreenLayout'
 import { colors } from '../../lib/theme/colors'
 
+const PLACEHOLDER_EXAMPLES = [
+  `Suche Nachhilfe in Mathe 2, falls jemand ganz gut ist bitte schreib mir`,
+  
+  `Bin neu in Hamburg und suche mit ein paar Freundinnen Studentenpartys! Meldet euch`,
+  
+  `Spiele in einer U21 Volleyball-Mannschaft. Wer Lust hat zu joinen, schreibt mich an`,
+] as const
+
+const MAX_CHARS = 200 // Suitable length for a bio
+
 export function BioStep({ onNext, onBack }: OnboardingStepProps) {
   const [bio, setBio] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [focusedField, setFocusedField] = useState<boolean>(false)
+  const [currentPlaceholder, setCurrentPlaceholder] = useState(0)
+  const [displayedPlaceholder, setDisplayedPlaceholder] = useState('')
   const inputRef = useRef<TextInput | null>(null)
+  const typingSpeedRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Typing effect for placeholders
+  useEffect(() => {
+    if (bio.length > 0) {
+      setDisplayedPlaceholder('')
+      return
+    }
+
+    let currentText = ''
+    let currentIndex = 0
+    const targetText = PLACEHOLDER_EXAMPLES[currentPlaceholder]
+
+    const typeNextChar = () => {
+      if (currentIndex < targetText.length) {
+        // Handle newline characters properly
+        const nextChar = targetText[currentIndex]
+        currentText += nextChar
+        setDisplayedPlaceholder(currentText)
+        currentIndex++
+        
+        // Adjust timing for better readability
+        const delay = nextChar === '\n' ? 200 : 50 // Longer pause at line breaks
+        typingSpeedRef.current = setTimeout(typeNextChar, delay)
+      }
+    }
+
+    typeNextChar()
+
+    return () => {
+      if (typingSpeedRef.current) {
+        clearTimeout(typingSpeedRef.current)
+      }
+    }
+  }, [currentPlaceholder, bio])
+
+  // Cycle through placeholders every 7 seconds when empty
+  useEffect(() => {
+    if (bio.length > 0) return
+
+    const interval = setInterval(() => {
+      if (typingSpeedRef.current) {
+        clearTimeout(typingSpeedRef.current)
+      }
+      setDisplayedPlaceholder('')
+      setCurrentPlaceholder((prev) => (prev + 1) % PLACEHOLDER_EXAMPLES.length)
+    }, 7000) // Increased time to allow for typing effect
+
+    return () => clearInterval(interval)
+  }, [bio])
 
   useEffect(() => {
     const loadStoredBio = async () => {
@@ -30,6 +92,11 @@ export function BioStep({ onNext, onBack }: OnboardingStepProps) {
       return
     }
 
+    if (bio.length > MAX_CHARS) {
+      setError(`Dein Text ist zu lang (maximal ${MAX_CHARS} Zeichen)`)
+      return
+    }
+
     setLoading(true)
     setError(null)
 
@@ -43,40 +110,58 @@ export function BioStep({ onNext, onBack }: OnboardingStepProps) {
     }
   }
 
+  const dismissKeyboard = () => {
+    Keyboard.dismiss()
+  }
+
   return (
-    <OnboardingScreenLayout
-      title="Erzähl uns"
-      subtitle="von dir"
-      onNext={handleNext}
-      onBack={onBack}
-      loading={loading}
-      error={error}
-      buttonDisabled={!bio.trim()}
-      hint="Eine kurze Beschreibung über dich"
-    >
-      <TextInput
-        style={[
-          styles.input,
-          styles.bioInput,
-          focusedField && styles.inputFocused
-        ]}
-        value={bio}
-        onChangeText={setBio}
-        placeholder="Schreib etwas über dich..."
-        placeholderTextColor="#666"
-        multiline
-        numberOfLines={6}
-        maxLength={500}
-        autoFocus
-        onFocus={() => setFocusedField(true)}
-        onBlur={() => setFocusedField(false)}
-        ref={inputRef}
-      />
-    </OnboardingScreenLayout>
+    <TouchableWithoutFeedback onPress={dismissKeyboard}>
+      <View style={{ flex: 1 }}>
+        <OnboardingScreenLayout
+          title="Erzähl uns"
+          subtitle="von dir"
+          onNext={handleNext}
+          onBack={onBack}
+          loading={loading}
+          error={error}
+          buttonDisabled={!bio.trim() || bio.length > MAX_CHARS}
+        >
+          <View style={styles.inputContainer}>
+            <Text style={styles.charCount}>
+              {bio.length}/{MAX_CHARS}
+            </Text>
+            <TextInput
+              style={[
+                styles.input,
+                styles.bioInput,
+                focusedField && styles.inputFocused,
+                bio.length > MAX_CHARS && styles.inputError
+              ]}
+              value={bio}
+              onChangeText={setBio}
+              placeholder={`${displayedPlaceholder}`}
+              placeholderTextColor="#666"
+              multiline={true}
+              textAlignVertical="top"
+              numberOfLines={7}
+              maxLength={MAX_CHARS + 50}
+              autoFocus
+              onFocus={() => setFocusedField(true)}
+              onBlur={() => setFocusedField(false)}
+              ref={inputRef}
+            />
+          </View>
+        </OnboardingScreenLayout>
+      </View>
+    </TouchableWithoutFeedback>
   )
 }
 
 const styles = StyleSheet.create({
+  inputContainer: {
+    position: 'relative',
+    width: '100%',
+  },
   input: {
     backgroundColor: colors.background.secondary,
     borderRadius: 12,
@@ -86,10 +171,24 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   bioInput: {
-    height: 150,
+    height: 160,
     textAlignVertical: 'top',
+    lineHeight: 24,
+    paddingTop: 16,
+    paddingBottom: 16,
   },
   inputFocused: {
     borderColor: colors.accent.primary,
+  },
+  inputError: {
+    borderColor: 'red',
+  },
+  charCount: {
+    position: 'absolute',
+    right: 8,
+    top: -24,
+    fontSize: 14,
+    color: colors.text.secondary,
+    zIndex: 1,
   },
 }) 

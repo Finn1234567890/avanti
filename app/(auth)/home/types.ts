@@ -5,5 +5,7 @@ export type Profile = {
   major: string
   description: string
   tags: string[]
+  preferences: string[]
+  degreeType: string
   images: { url: string }[]
 } 

@@ -6,6 +6,9 @@ export type ProfileEntry = {
   description?: string
   tags?: string[]
   created_at: string
+  degreeType: string
+  semester?: number
+  preferences?: string[]
 }
 
 export type FullProfileData = ProfileEntry & {
