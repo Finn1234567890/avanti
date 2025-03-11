@@ -72,7 +72,7 @@ export default function Home() {
       setSortedProfiles(sortedProfiles)
 
       // 3. Load first page using the local sortedProfiles variable
-      await loadProfilePage(0, sortedProfiles)
+      await loadProfilePage(0, sortedProfiles, userProfileData)
     } catch (e) {
       console.error('Error initializing profiles:', e)
       setError('Failed to load profiles')
@@ -81,7 +81,20 @@ export default function Home() {
     }
   }
 
-  const loadProfilePage = async (pageNumber: number, profilesOverride?: ProfileEntry[]) => {
+  const setProfileAsViewed = async (profile: ProfileEntry, userProfile: ProfileEntry) => {
+    const viewedTime = new Date().toISOString()
+    console.log('Setting profile as viewed: ' + profile['User-ID'] + ' for user: ' + userProfile!['User-ID'])
+
+    const { error } = await supabase
+      .from('ProfileViews')
+      .upsert({ user_id: userProfile!['User-ID'], viewed_profile_id: profile['User-ID'], viewed_at: viewedTime })
+
+    if (error) {
+      console.error('Error setting profile as viewed:', error)
+    }
+  }
+
+  const loadProfilePage = async (pageNumber: number, profilesOverride?: ProfileEntry[], userProfileOverride?: ProfileEntry) => {
     try {
       const from = pageNumber * PROFILES_PER_PAGE
       const to = from + PROFILES_PER_PAGE - 1
@@ -90,8 +103,22 @@ export default function Home() {
       const profilesToUse = profilesOverride || sortedProfiles
       const pageProfiles = profilesToUse.slice(from, to + 1)
 
+      const userProfileToUse = userProfileOverride || userProfile
+
       console.log('Loading Profiles: ' + pageProfiles.length)
       console.log('Profiles: ', pageProfiles)
+
+      // Only try to set as viewed if we actually have profiles AND userProfile
+      if (pageProfiles && pageProfiles.length > 0 && userProfileToUse) {
+        for (const profile of pageProfiles) {
+          await setProfileAsViewed(profile, userProfileToUse)
+        }
+      } else {
+        console.log('Missing required data:', { 
+          hasProfiles: pageProfiles?.length > 0,
+          hasUserProfile: !!userProfile 
+        })
+      }
       
       // Fetch images for this page of profiles
       const profilesWithImages = await Promise.all(
@@ -186,6 +213,7 @@ export default function Home() {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Avanti</Text>
         <View style={styles.headerRight}>
+         
           <TouchableOpacity style={styles.headerButton} onPress={() => router.push('/(auth)/profile')}>
             <Ionicons name="menu" size={24} color={colors.text.primary} />
           </TouchableOpacity>

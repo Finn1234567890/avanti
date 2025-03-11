@@ -38,7 +38,10 @@ export function EditProfile({ profile: initialProfile, onClose, onSave, view }: 
           name: profile.name,
           major: profile.major,
           description: profile.description,
-          tags: profile.tags
+          tags: profile.tags,
+          preferences: profile.preferences,
+          semester: profile.semester,
+          degree_type: profile.degreeType
         })
         .eq('User-ID', session.user.id)
 
