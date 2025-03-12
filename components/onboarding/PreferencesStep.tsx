@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native'
 import { useState, useEffect } from 'react'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { OnboardingStepProps } from '../../lib/types/onboarding'
@@ -69,7 +69,7 @@ export function PreferencesStep({ onNext, onBack }: OnboardingStepProps) {
       buttonDisabled={selectedPreferences.length < 1}
       error={error}
     >
-      <View style={styles.container}>
+      <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
         <Text style={styles.hint}>
           Wir verbinden dich mit Studenten, die Ähnliches suchen.
         </Text>
@@ -101,7 +101,7 @@ export function PreferencesStep({ onNext, onBack }: OnboardingStepProps) {
             </TouchableOpacity>
           ))}
         </View>
-      </View>
+      </ScrollView>
     </OnboardingScreenLayout>
   )
 }
@@ -109,6 +109,9 @@ export function PreferencesStep({ onNext, onBack }: OnboardingStepProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
   },
   hint: {
     fontSize: 12,

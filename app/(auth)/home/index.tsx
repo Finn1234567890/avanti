@@ -18,8 +18,10 @@ import { ProfileEntry } from '../../../lib/types/profile'
 import { Profile } from '../../../lib/types/profile'
 
 const BOTTOM_NAV_HEIGHT = Platform.OS === 'ios' ? 83 : 60
+
 const { height } = Dimensions.get('window')
 const SCREEN_HEIGHT = height - BOTTOM_NAV_HEIGHT
+const SNAP_HEIGHT = height > 700 ? 112 : 50
 
 export default function Home() {
   const { session } = useAuth()
@@ -260,7 +262,7 @@ export default function Home() {
               />
             )}
             pagingEnabled
-            snapToInterval={SCREEN_HEIGHT - 112}
+            snapToInterval={SCREEN_HEIGHT - SNAP_HEIGHT}
             decelerationRate="fast"
             viewabilityConfig={viewabilityConfig.current}
             onViewableItemsChanged={onViewableItemsChanged}

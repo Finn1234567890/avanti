@@ -44,13 +44,21 @@ export function ImagesStep({ onBack }: OnboardingStepProps) {
     }
 
     try {
+      // Request permissions first
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        setError('Bitte erlaube den Zugriff auf deine Fotos');
+        return;
+      }
+
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [4, 5],
         quality: 0.8,
-        base64: true
-      })
+        base64: true,
+        allowsMultipleSelection: false,
+      });
 
       if (!result.canceled && result.assets[0].base64) {
         const newImage: ImageInfo = {
@@ -61,8 +69,6 @@ export function ImagesStep({ onBack }: OnboardingStepProps) {
         }
         setImages([...images, newImage])
         setError(null)
-      } else {
-        setError('Bild konnte nicht geladen werden')
       }
     } catch (e) {
       console.error('Error picking image:', e)
@@ -170,11 +176,11 @@ export function ImagesStep({ onBack }: OnboardingStepProps) {
       onBack={onBack}
       loading={loading}
       error={error}
-      buttonText={`${images.length}/${IMAGE_LIMITS.MIN_IMAGES} · Ferting`}
+      buttonText={`${images.length}/${IMAGE_LIMITS.MIN_IMAGES} · Fertig`}
       buttonDisabled={images.length < IMAGE_LIMITS.MIN_IMAGES}
       hint={`Wähle bis zu ${IMAGE_LIMITS.MAX_IMAGES} Bilder. Keine Panik! Du kannst sie später noch bearbeiten`}
     >
-      <View style={styles.container}>
+      <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
         <View style={styles.imageGrid}>
           {images.map((image, index) => (
             <View key={index} style={styles.imageContainer}>
@@ -197,7 +203,7 @@ export function ImagesStep({ onBack }: OnboardingStepProps) {
             </TouchableOpacity>
           )}
         </View>
-      </View>
+      </ScrollView>
     </OnboardingScreenLayout>
   )
 }
@@ -205,6 +211,9 @@ export function ImagesStep({ onBack }: OnboardingStepProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
   },
   imageGrid: {
     flexDirection: 'row',

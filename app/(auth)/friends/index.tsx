@@ -461,6 +461,7 @@ const styles = StyleSheet.create({
   },
   header: {
     padding: 16,
+    paddingBottom: 5,
     paddingTop: 0,
     flexDirection: 'row',
     justifyContent: 'space-between',

@@ -1,7 +1,7 @@
 import { Tabs } from 'expo-router'
 import * as Haptics from 'expo-haptics'
 import Ionicons from '@expo/vector-icons/Ionicons'
-import { Platform } from 'react-native'
+import { Dimensions, Platform } from 'react-native'
 import { colors } from '../../lib/theme/colors'
 import { FontAwesome5 } from '@expo/vector-icons'
 
@@ -10,6 +10,8 @@ export default function AuthLayout() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
   }
 
+  const screenHeight = Dimensions.get('window').height
+
   return (
     <Tabs
       screenOptions={{
@@ -17,8 +19,7 @@ export default function AuthLayout() {
         tabBarStyle: {
           backgroundColor: colors.background.primary,
           borderTopColor: colors.background.secondary,
-          height: Platform.OS === 'ios' ? 88 : 60,
-          paddingBottom: Platform.OS === 'ios' ? 40 : 20,
+          height: screenHeight > 700 ? 88 : 70,
           paddingTop: 10,
           paddingHorizontal: 20,
         },

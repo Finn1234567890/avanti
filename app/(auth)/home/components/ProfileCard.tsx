@@ -13,8 +13,12 @@ import { Image as ExpoImage } from 'expo-image'
 import { Profile } from '../../../../lib/types/profile'
 import { PREFRENCES } from '../../../../lib/utils/constants'
 import { INTEREST_ICONS } from '../../../../components/onboarding/InterestsStep'
+
 type PreferenceKey = typeof PREFRENCES[number]
+
 const SCREEN_HEIGHT = Dimensions.get('window').height
+const NAV_HEIGHT = SCREEN_HEIGHT > 700 ? 195 : 133
+const PADDING_VERTICAL = SCREEN_HEIGHT > 700 ? 10 : 5
 
 const PREFERENCE_ICONS = {
   'Lerngruppen oder Lernpartner': 'people',
@@ -33,7 +37,6 @@ export function ProfileCard({ profile, preview }: { profile: Profile, preview: b
   const [connectionStatus, setConnectionStatus] = useState<string | null>(null)
   const hasMultipleImages = profile.images && profile.images.length > 1
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
-  const [isConnecting, setIsConnecting] = useState(false)
   const [rotationValue] = useState(new Animated.Value(0))
   const [scaleValue] = useState(new Animated.Value(1))
   const [buttonColorValue] = useState(new Animated.Value(0))
@@ -217,7 +220,7 @@ export function ProfileCard({ profile, preview }: { profile: Profile, preview: b
 
     return (
       <View style={styles.preferencesContainer}>
-        {preferences.map((pref, index) => (
+        {preferences.slice(0, 2).map((pref, index) => (
           <View key={index} style={styles.preferenceTag}>
             <Ionicons 
               name={PREFERENCE_ICONS[pref as PreferenceKey]}
@@ -241,7 +244,7 @@ export function ProfileCard({ profile, preview }: { profile: Profile, preview: b
       ]}
       style={styles.firstScreenGradient}
     >
-      <View style={styles.profileInfo}>
+      <View style={preview ? styles.profileInfoPreview : styles.profileInfo}>
         <Text style={styles.name}>{profile.name}</Text>
         {renderMajorWithIcon()}
         <Text style={styles.bio} numberOfLines={5}>
@@ -262,7 +265,7 @@ export function ProfileCard({ profile, preview }: { profile: Profile, preview: b
       ]}
       style={styles.gradient}
     >
-      <View style={styles.profileInfo}>
+      <View style={preview ? styles.profileInfoPreview : styles.profileInfo}>
         <View style={styles.headerContainer}>
           <View style={styles.nameContainer}>
             <Text style={styles.name}>{profile.name}</Text>
@@ -271,7 +274,7 @@ export function ProfileCard({ profile, preview }: { profile: Profile, preview: b
         </View>
 
         <View style={styles.tagsContainer}>
-          {profile.tags?.map((tag: string, index: number) => (
+          {profile.tags?.slice(0, 8).map((tag: string, index: number) => (
             <View key={index} style={styles.tag}>
               {INTEREST_ICONS[tag as InterestKey] && (
                 <Ionicons 
@@ -298,7 +301,7 @@ export function ProfileCard({ profile, preview }: { profile: Profile, preview: b
       ]}
       style={styles.gradient}
     >
-      <View style={styles.profileInfo}>
+      <View style={preview ? styles.profileInfoPreview : styles.profileInfo}>
         <View style={styles.headerContainer}>
           <View style={styles.nameContainer}>
             <Text style={styles.name}>{profile.name}</Text>
@@ -362,10 +365,6 @@ export function ProfileCard({ profile, preview }: { profile: Profile, preview: b
     outputRange: [2, 8, 8, 2]
   })
 
-  const buttonTextColor = buttonColorValue.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['black', colors.text.light]
-  })
 
   return (
     <View style={styles.cardContainer}>
@@ -481,8 +480,10 @@ export function ProfileCard({ profile, preview }: { profile: Profile, preview: b
 
 const styles = StyleSheet.create({
   cardContainer: {
-    height: SCREEN_HEIGHT - 195,
-    paddingVertical: 10,
+    height: SCREEN_HEIGHT - NAV_HEIGHT,
+    paddingVertical: PADDING_VERTICAL,
+    minHeight: 500,
+    maxHeight: '100%',
   },
   profileCard: {
     backgroundColor: colors.background.primary,
@@ -494,7 +495,7 @@ const styles = StyleSheet.create({
       width: 0,
       height: 2,
     },
-    height: '100%',
+    flex: 1,
     shadowOpacity: 0.15,
     shadowRadius: 8,
     elevation: 5,
@@ -515,7 +516,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: '45%',
+    height: '60%',
     justifyContent: 'flex-end',
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
@@ -523,6 +524,11 @@ const styles = StyleSheet.create({
   profileInfo: {
     padding: 20,
     marginBottom: 50,
+    gap: 12,
+  },
+  profileInfoPreview: {
+    padding: 20,
+    marginBottom: 0,
     gap: 12,
   },
   headerContainer: {
@@ -557,11 +563,12 @@ const styles = StyleSheet.create({
     opacity: 0.95,
   },
   tagsContainer: {
-    width: '80%',
+    width: '100%',
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 16,
+    gap: 4,
+    marginBottom: 0,
+    marginTop: -10,
   },
   tag: {
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
@@ -641,7 +648,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: '65%',
+    height: '80%',
     justifyContent: 'flex-end',
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,

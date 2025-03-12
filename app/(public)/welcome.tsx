@@ -3,8 +3,12 @@ import { router } from 'expo-router'
 import { colors } from '../../lib/theme/colors'
 import { LinearGradient } from 'expo-linear-gradient'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { Dimensions } from 'react-native'
+
 
 export default function Welcome() {
+
+  
   return (
     <LinearGradient
         colors={[colors.accent.primary, colors.accent.secondary]}
@@ -28,12 +32,12 @@ export default function Welcome() {
             </Text>
           </View>
 
-          <Text style={styles.terms}>
-            Durch Tippen auf 'Mit Email registrieren' stimmst du unseren Nutzungsbedingungen zu. Erfahre in unserer Datenschutzerklärung und Cookie-Richtlinie, wie wir deine Daten verarbeiten.
-          </Text>
+          
 
           <View style={styles.buttonContainer}>
-
+            <Text style={styles.terms}>
+                Durch Tippen auf 'Mit Email registrieren' stimmst du unseren Nutzungsbedingungen zu. Erfahre in unserer Datenschutzerklärung und Cookie-Richtlinie, wie wir deine Daten verarbeiten.
+            </Text>
             <TouchableOpacity 
             style={styles.signInButton}
             onPress={() => router.push('/(public)/register')}
@@ -137,7 +141,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 12,
     fontWeight: '600',
-    marginBottom: -260,
-    paddingHorizontal: 20,
+    marginBottom: 10,
+    paddingHorizontal: 10,
   }
 }) 

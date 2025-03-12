@@ -6,11 +6,11 @@ import { OnboardingScreenLayout } from '../OnboardingScreenLayout'
 import { colors } from '../../lib/theme/colors'
 
 const PLACEHOLDER_EXAMPLES = [
-  `Suche Nachhilfe in Mathe 2, falls jemand ganz gut ist bitte schreib mir`,
+  "Suche Nachhilfe in Mathe 2,\nfalls jemand ganz gut ist\nbitte schreib mir",
   
-  `Bin neu in Hamburg und suche mit ein paar Freundinnen Studentenpartys! Meldet euch`,
+  "Bin neu in Hamburg und\nsuche mit ein paar Freundinnen\nStudentenpartys! Meldet euch",
   
-  `Spiele in einer U21 Volleyball-Mannschaft. Wer Lust hat zu joinen, schreibt mich an`,
+  "Spiele in einer U21\nVolleyball-Mannschaft. Wer\nLust hat zu joinen, schreibt mich an",
 ] as const
 
 const MAX_CHARS = 200 // Suitable length for a bio
@@ -118,8 +118,8 @@ export function BioStep({ onNext, onBack }: OnboardingStepProps) {
     <TouchableWithoutFeedback onPress={dismissKeyboard}>
       <View style={{ flex: 1 }}>
         <OnboardingScreenLayout
-          title="Erzähl uns"
-          subtitle="von dir"
+          title="Erzähl uns von dir."
+          subtitle="Warum bist du hier?"
           onNext={handleNext}
           onBack={onBack}
           loading={loading}
@@ -130,6 +130,11 @@ export function BioStep({ onNext, onBack }: OnboardingStepProps) {
             <Text style={styles.charCount}>
               {bio.length}/{MAX_CHARS}
             </Text>
+            {!bio && (
+              <Text style={[styles.placeholderText]}>
+                {displayedPlaceholder}
+              </Text>
+            )}
             <TextInput
               style={[
                 styles.input,
@@ -139,8 +144,6 @@ export function BioStep({ onNext, onBack }: OnboardingStepProps) {
               ]}
               value={bio}
               onChangeText={setBio}
-              placeholder={`${displayedPlaceholder}`}
-              placeholderTextColor="#666"
               multiline={true}
               textAlignVertical="top"
               numberOfLines={7}
@@ -159,6 +162,7 @@ export function BioStep({ onNext, onBack }: OnboardingStepProps) {
 
 const styles = StyleSheet.create({
   inputContainer: {
+    marginTop: 10,
     position: 'relative',
     width: '100%',
   },
@@ -189,6 +193,14 @@ const styles = StyleSheet.create({
     top: -24,
     fontSize: 14,
     color: colors.text.secondary,
+    zIndex: 1,
+  },
+  placeholderText: {
+    position: 'absolute',
+    color: '#666',
+    fontSize: 16,
+    padding: 16,
+    lineHeight: 24,
     zIndex: 1,
   },
 }) 
