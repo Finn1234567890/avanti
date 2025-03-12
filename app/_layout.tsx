@@ -8,17 +8,12 @@ import { StatusBar } from 'expo-status-bar'
 export default function RootLayout() {
   return (
     <> 
-    <StatusBar style="dark" />
-      <GestureHandlerRootView style={{ flex: 1 }}> 
-      
-        <SafeAreaProvider>
+      <StatusBar style="dark" />
+      <GestureHandlerRootView style={{ flex: 1, }}> 
           <AuthProvider>
             <Stack screenOptions={{ headerShown: false }} />
           </AuthProvider>
-        </SafeAreaProvider>
       </GestureHandlerRootView>
     </>
-     
-
   )
 } 

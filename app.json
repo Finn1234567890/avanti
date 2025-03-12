@@ -7,6 +7,12 @@
     "name": "avanti-app",
     "slug": "avanti-app",
     "newArchEnabled": true,
-    "orientation": "portrait"
+    "orientation": "portrait",
+    "android": {
+      "package": "com.anonymous.avantiapp"
+    },
+    "ios": {
+      "bundleIdentifier": "com.anonymous.avantiapp"
+    }
   }
 }

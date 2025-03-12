@@ -159,19 +159,17 @@ export default function Profile() {
 
   const handleDeleteAccount = async () => {
     Alert.alert(
-      'Delete Account',
-      'Are you sure you want to delete your account? This action cannot be undone.',
+      'Account löschen',
+      'Bist du dir sicher, dass du deinen Account löschen möchtest? Diese Aktion kann nicht rückgängig gemacht werden.',
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: 'Abbrechen', style: 'cancel' },
         {
-          text: 'Delete',
+          text: 'Löschen',
           style: 'destructive',
           onPress: async () => {
             try {
               const { error } = await supabase
-                .from('Users')
-                .delete()
-                .eq('id', session?.user?.id)
+                .rpc('delete_user_account')
 
               if (error) throw error
               signOut()
@@ -297,10 +295,10 @@ export default function Profile() {
               <MenuItem icon="person" title="Profil bearbeiten" onPress={() => {setViewMode('edit'), setIsEditing(true)}} />
               <MenuItem icon="images" title="Vorschau" onPress={() => {setViewMode('preview'), setIsEditing(true)}} />
               <MenuItem icon="shield-checkmark" title="Sicherheit & Datenschutz" onPress={() => {}} />
-              <MenuItem icon="log-out" title="Logout" onPress={handleSignOut} />
+              <MenuItem icon="log-out" title="Abmelden" onPress={handleSignOut} />
               <MenuItem 
                 icon="trash" 
-                title="Delete Account" 
+                title="Account löschen" 
                 onPress={handleDeleteAccount}
                 isDelete
               />
