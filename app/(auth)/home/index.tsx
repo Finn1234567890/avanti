@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, FlatList, ViewToken, Dimensions, Platform, RefreshControl, TouchableOpacity } from 'react-native'
+import { View, Text, StyleSheet, FlatList, ViewToken, Dimensions, Platform, RefreshControl, TouchableOpacity, ScrollView } from 'react-native'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from '../../../lib/context/auth'
 import { supabase } from '../../../lib/supabase/supabase'
@@ -208,6 +208,35 @@ export default function Home() {
     return <ErrorView error={error} onRetry={handleRetry} />
   }
 
+  if (!loading && profiles.length === 0) {
+    return (
+      <SafeAreaWrapper>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Avanti</Text>
+          <View style={styles.headerRight}>
+            <TouchableOpacity style={styles.headerButton} onPress={() => router.push('/(auth)/profile')}>
+              <Ionicons name="menu" size={24} color={colors.text.primary} />
+            </TouchableOpacity>
+          </View>
+        </View>
+        <ScrollView 
+          contentContainerStyle={[styles.container, styles.emptyContainer]}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={colors.accent.primary}
+            />
+          }
+        >
+          <Text style={styles.emptyText}>
+            Gerade können dir keine Profile mehr angezeigt werden. Versuche es später nochmal
+          </Text>
+        </ScrollView>
+      </SafeAreaWrapper>
+    )
+  }
+
   return (
     <SafeAreaWrapper>
       <View style={styles.header}>
@@ -288,5 +317,16 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  emptyContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: colors.text.primary,
+    textAlign: 'center',
+    lineHeight: 24,
   },
 }) 

@@ -23,4 +23,5 @@ export type ProfileEntry = {
   preferences?: string[]
   tags?: string[]
   description?: string
+  party_mode?: boolean
 }

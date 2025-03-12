@@ -25,6 +25,9 @@ const PREFERENCE_ICONS = {
   'Gaming & E-Sports Gruppen': 'game-controller',
 } as const
 
+// Add type for interest keys
+type InterestKey = keyof typeof INTEREST_ICONS
+
 export function ProfileCard({ profile, preview }: { profile: Profile, preview: boolean }) {
   const { session } = useAuth()
   const [connectionStatus, setConnectionStatus] = useState<string | null>(null)
@@ -270,6 +273,14 @@ export function ProfileCard({ profile, preview }: { profile: Profile, preview: b
         <View style={styles.tagsContainer}>
           {profile.tags?.map((tag: string, index: number) => (
             <View key={index} style={styles.tag}>
+              {INTEREST_ICONS[tag as InterestKey] && (
+                <Ionicons 
+                  name={INTEREST_ICONS[tag as InterestKey]!}
+                  size={16} 
+                  color={colors.text.light}
+                  style={styles.tagIcon} 
+                />
+              )}
               <Text style={styles.tagText}>{tag}</Text>
             </View>
           ))}
@@ -300,16 +311,34 @@ export function ProfileCard({ profile, preview }: { profile: Profile, preview: b
 
   const renderMajorWithIcon = () => (
     <View style={styles.majorContainer}>
-      <Ionicons 
-        name="school" 
-        size={18} 
-        color={'white'} 
-        style={styles.majorIcon} 
-      />
-      <Text style={styles.major}>
-        {profile.major}
-        {profile.semester && ` • ${profile.semester}. Semester`}
-      </Text>
+      <View style={styles.majorInfo}>
+        <Ionicons 
+          name="school" 
+          size={18} 
+          color={'white'} 
+          style={styles.majorIcon} 
+        />
+        <Text style={styles.major}>
+          {profile.major}
+          {profile.semester && ` • ${profile.semester}. Semester`}
+        </Text>
+      </View>
+      {profile.party_mode && (
+        <LinearGradient
+          colors={['#FF2D55', '#FF3B69', '#FE3C72']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.partyModeTag}
+        >
+          <Ionicons 
+            name="beer" 
+            size={14} 
+            color={colors.text.light}
+            style={styles.partyModeIcon} 
+          />
+          <Text style={styles.partyModeText}>Heute unterwegs</Text>
+        </LinearGradient>
+      )}
     </View>
   )
 
@@ -513,6 +542,9 @@ const styles = StyleSheet.create({
     color: colors.text.light,
   },
   majorContainer: {
+    gap: 8,
+  },
+  majorInfo: {
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -532,10 +564,15 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   tag: {
-    backgroundColor: colors.accent.primary,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  tagIcon: {
+    marginRight: 6,
   },
   tagText: {
     fontSize: 14,
@@ -623,5 +660,21 @@ const styles = StyleSheet.create({
     right: 0,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  partyModeTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+  },
+  partyModeIcon: {
+    marginRight: 4,
+  },
+  partyModeText: {
+    color: colors.text.light,
+    fontSize: 12,
+    fontWeight: '600',
   },
 }) 
