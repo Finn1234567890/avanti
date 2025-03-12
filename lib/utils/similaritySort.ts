@@ -28,6 +28,10 @@ const getAllUserProfiles = async (user: ProfileEntry): Promise<ProfileEntry[]> =
 const calculateSimilarityIndex = async (user: ProfileEntry, profile: ProfileEntry) => {
     let similarityIndex = 0
 
+    if (user.party_mode && profile.party_mode) {
+        similarityIndex += 2
+    }
+
     if (user && profile) {
         const penalty = await penaltilizedViewedProfile(profile, user)
         similarityIndex -= penalty

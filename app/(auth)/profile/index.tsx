@@ -12,6 +12,9 @@ import { colors } from '../../../lib/theme/colors'
 import type { ProfileEntry, FullProfileData } from './types'
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import { ViewMode } from './edit';
+import * as Haptics from 'expo-haptics';
+import { OutingToggle } from './components/OutingToggle';
+
 type StatCardProps = {
   icon: keyof typeof Ionicons.glyphMap
   title: string
@@ -85,6 +88,7 @@ export default function Profile() {
   const [viewMode, setViewMode] = useState<ViewMode>('edit')
   const [loading, setLoading] = useState(true)
   const [friendshipCount, setFriendshipCount] = useState(0)
+  const [partyMode, setPartyMode] = useState(false)
 
   useEffect(() => {
     loadProfile()
@@ -98,7 +102,7 @@ export default function Profile() {
 
       const { data, error } = await supabase
         .from('Profile')
-        .select('tags, name, major, P-ID, User-ID, created_at, description, preferences, semester, degree_type')
+        .select('tags, name, major, P-ID, User-ID, created_at, description, preferences, semester, degree_type, party_mode')
         .eq('User-ID', session.user.id)
         .single()
         .returns<ProfileEntry>()
@@ -194,6 +198,22 @@ export default function Profile() {
     }
   }
 
+  const togglePartyMode = async () => {
+    console.log("Toggling party mode")
+
+    try {
+      const { error } = await supabase
+        .from('Profile')
+        .update({ party_mode: !partyMode })
+        .eq('User-ID', session?.user?.id)
+
+      if (error) throw error
+
+      setPartyMode(!partyMode)
+    } catch (error) {
+      console.error('Error toggling party mode:', error)
+  }}
+
   return (
     <SafeAreaWrapper>
       {isEditing ? (
@@ -258,6 +278,11 @@ export default function Profile() {
             </View>
 
             <View style={styles.statsSection}>
+              <OutingToggle 
+                isEnabled={partyMode}
+                onToggle={() => togglePartyMode()}
+              />
+              <View style={styles.statSpacing} />
               <StatCard
                 icon="people"
                 title="Freundschaften"
@@ -453,5 +478,8 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     marginLeft: 12,
+  },
+  statSpacing: {
+    height: 16,
   },
 }) 
