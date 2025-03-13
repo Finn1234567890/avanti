@@ -75,7 +75,12 @@ export default function Phone() {
         <View style={styles.content}>
           <TouchableOpacity 
             style={styles.backButton}
-            onPress={() => router.back()}
+            onPress={() => {
+              supabase.auth.signOut()
+              setTimeout(() => {
+                router.push('/(public)/welcome')
+              }, 300)
+            }}
           >
             <Ionicons name="chevron-back" size={32} color={colors.text.primary} />
           </TouchableOpacity>
@@ -118,7 +123,7 @@ export default function Phone() {
             </View>
             {error && <Text style={styles.errorText}>{error}</Text>}
             <Text style={styles.hint}>
-              Gib deine deutsche Handynummer ein
+              Gib deine deutsche Handynummer ein. Wir benötigen sie, damit dich deine Freunde anschreiben können.
             </Text>
           </View>
 
@@ -223,7 +228,7 @@ const styles = StyleSheet.create({
   },
   hint: {
     color: colors.text.secondary,
-    fontSize: 14,
+    fontSize: 12,
     marginTop: 8,
     textAlign: 'center',
   },

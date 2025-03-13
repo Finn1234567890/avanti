@@ -25,6 +25,8 @@ export default function Welcome() {
           fullName: credential.fullName, // Could be null if not shared
         })
 
+        console.log(credential)
+
         const { data, error } = await supabase.auth.signInWithIdToken({
           provider: 'apple',
           token: credential.identityToken,
@@ -36,8 +38,7 @@ export default function Welcome() {
         if (!data.user?.email) {
           console.log('User signing in with Apple without providing email')
         }
-        
-        router.push('/(public)/phone')
+
       }
     } catch (e: any) {
       if (e.code !== 'ERR_CANCELED') {
@@ -64,7 +65,7 @@ export default function Welcome() {
                   source={require('../../assets/images/uni-hamburg-icon.webp')}
                   style={styles.uniIcon}
                 />
-                <Text style={styles.highlight}>UHH</Text>
+                <Text style={styles.highlight}>UHH.</Text>
               </View>
             </Text>
           </View>
@@ -149,18 +150,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   logo: {
-    fontSize: 32,
+    fontSize: 24,
     fontWeight: 'bold',
     color: colors.text.light,
     marginBottom: 20,
   },
   title: {
     marginTop: 40,
-    fontSize: 24,
+    fontSize: 28,
     flexDirection: 'row',
     width: '100%',
     fontWeight: '600',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     color: colors.text.light,
     textAlign: 'center',
     marginBottom: 20,
@@ -172,7 +173,6 @@ const styles = StyleSheet.create({
   uniContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    width: '100%',
     justifyContent: 'center',
     gap: 8,
   },

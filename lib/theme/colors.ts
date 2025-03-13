@@ -5,6 +5,7 @@ export const colors = {
   // Accent colors
   accent: {
     primary: '#89DFC2',   // Mint green
+    primaryLight: '#C5EED9',
     secondary: '#FF69B4'  // Hot pink
   },
 
