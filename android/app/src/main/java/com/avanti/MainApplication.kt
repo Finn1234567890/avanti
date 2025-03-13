@@ -1,4 +1,4 @@
-package com.anonymous.avantiapp
+package com.avanti
 
 import android.app.Application
 import android.content.res.Configuration

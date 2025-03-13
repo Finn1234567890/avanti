@@ -15,9 +15,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-               BuildableName = "avantiapp.app"
-               BlueprintName = "avantiapp"
-               ReferencedContainer = "container:avantiapp.xcodeproj">
+               BuildableName = "Avanti.app"
+               BlueprintName = "Avanti"
+               ReferencedContainer = "container:Avanti.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -33,9 +33,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "00E356ED1AD99517003FC87E"
-               BuildableName = "avantiappTests.xctest"
-               BlueprintName = "avantiappTests"
-               ReferencedContainer = "container:avantiapp.xcodeproj">
+               BuildableName = "AvantiTests.xctest"
+               BlueprintName = "AvantiTests"
+               ReferencedContainer = "container:Avanti.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
@@ -55,9 +55,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-            BuildableName = "avantiapp.app"
-            BlueprintName = "avantiapp"
-            ReferencedContainer = "container:avantiapp.xcodeproj">
+            BuildableName = "Avanti.app"
+            BlueprintName = "Avanti"
+            ReferencedContainer = "container:Avanti.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -72,9 +72,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-            BuildableName = "avantiapp.app"
-            BlueprintName = "avantiapp"
-            ReferencedContainer = "container:avantiapp.xcodeproj">
+            BuildableName = "Avanti.app"
+            BlueprintName = "Avanti"
+            ReferencedContainer = "container:Avanti.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>
