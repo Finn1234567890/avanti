@@ -12,7 +12,8 @@
       "package": "com.anonymous.avantiapp"
     },
     "ios": {
-      "bundleIdentifier": "com.anonymous.avantiapp"
+      "bundleIdentifier": "com.anonymous.avantiapp",
+      "appleTeamId": "L94BT84S6K"
     }
   }
 }
