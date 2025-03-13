@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, Alert, RefreshControl, ScrollView, Image } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, Alert, RefreshControl, ScrollView, Image, Linking } from 'react-native'
 import { SafeAreaWrapper } from '../../../components/SafeAreaWrapper'
 import { useAuth } from '../../../lib/context/auth'
 import { supabase } from '../../../lib/supabase/supabase'
@@ -280,7 +280,9 @@ export default function Friends() {
         <View style={styles.container}>
           <View style={styles.header}>
             <Text style={styles.headerTitle}>Avanti</Text>
-            <Ionicons name="shield-checkmark" size={28} color={colors.text.primary} />
+            <TouchableOpacity onPress={() => Linking.openURL('https://policiesavanti.vercel.app/')}>
+              <Ionicons name="shield-checkmark" size={28} color={colors.text.primary} />
+            </TouchableOpacity>
           </View>
 
           <ScrollView

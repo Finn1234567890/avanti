@@ -1,14 +1,51 @@
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, Image, Linking } from 'react-native'
 import { router } from 'expo-router'
 import { colors } from '../../lib/theme/colors'
 import { LinearGradient } from 'expo-linear-gradient'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Dimensions } from 'react-native'
-
+import * as AppleAuthentication from 'expo-apple-authentication'
+import { supabase } from '../../lib/supabase/supabase'
+import Ionicons from '@expo/vector-icons/Ionicons'
 
 export default function Welcome() {
+  const handleAppleSignIn = async () => {
+    try {
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      })
 
-  
+      if (credential.identityToken) {
+        // Log what we get from Apple
+        console.log('Apple credential:', {
+          email: credential.email, // Could be null or relay address
+          fullName: credential.fullName, // Could be null if not shared
+        })
+
+        const { data, error } = await supabase.auth.signInWithIdToken({
+          provider: 'apple',
+          token: credential.identityToken,
+        })
+
+        if (error) throw error
+
+        // Check if we have an email
+        if (!data.user?.email) {
+          console.log('User signing in with Apple without providing email')
+        }
+        
+        router.push('/(public)/phone')
+      }
+    } catch (e: any) {
+      if (e.code !== 'ERR_CANCELED') {
+        console.error('Apple Sign In Error:', e)
+      }
+    }
+  }
+
   return (
     <LinearGradient
         colors={[colors.accent.primary, colors.accent.secondary]}
@@ -36,20 +73,57 @@ export default function Welcome() {
 
           <View style={styles.buttonContainer}>
             <Text style={styles.terms}>
-                Durch Tippen auf 'Mit Email registrieren' stimmst du unseren Nutzungsbedingungen zu. Erfahre in unserer Datenschutzerklärung und Cookie-Richtlinie, wie wir deine Daten verarbeiten.
+              Durch Tippen auf 'Mit Email registrieren' oder 'Mit Apple fortfahren' stimmst du unseren{' '}
+              <Text 
+                style={styles.link}
+                onPress={() => Linking.openURL('https://policiesavanti.vercel.app/')}
+              >
+                Nutzungsbedingungen
+              </Text>
+              {' '}zu. Erfahre in unserer{' '}
+              <Text 
+                style={styles.link}
+                onPress={() => Linking.openURL('https://policiesavanti.vercel.app/terms')}
+              >
+                Datenschutzerklärung
+              </Text>
+              {' '}und{' '}
+              <Text 
+                style={styles.link}
+                onPress={() => Linking.openURL('https://policiesavanti.vercel.app/cookies')}
+              >
+                Cookie-Richtlinie
+              </Text>
+              , wie wir deine Daten verarbeiten.
             </Text>
             <TouchableOpacity 
-            style={styles.signInButton}
-            onPress={() => router.push('/(public)/register')}
-          >
-            <Text style={styles.signInText}>Mit Email registrieren</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.registerButton}
-            onPress={() => router.push('/(public)/login')}
-          >
-            <Text style={styles.registerText}>Bereits registriert? Anmelden</Text>
-          </TouchableOpacity>
+              style={styles.appleButton}
+              onPress={handleAppleSignIn}
+            >
+              <View style={styles.appleButtonContent}>
+                <Ionicons name="logo-apple" size={24} style={styles.appleIcon} color="#000" />
+                <Text style={styles.appleButtonText}>
+                  Mit Apple fortfahren
+                </Text>
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.signInButton, styles.emailButton]}
+              onPress={() => router.push('/(public)/register')}
+            >
+              <View style={styles.emailButtonContent}>
+                <Ionicons name="mail-outline" size={24} style={styles.emailIcon} color="#000" />
+                <Text style={styles.emailButtonText}>
+                  Mit Email registrieren
+                </Text>
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.registerButton}
+              onPress={() => router.push('/(public)/login')}
+            >
+              <Text style={styles.registerText}>Bereits registriert? Anmelden</Text>
+            </TouchableOpacity>
           </View>
           
         </View>
@@ -130,12 +204,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
   },
-  signInText: {
-    color: colors.text.primary,
-    fontSize: 18,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
   terms: {
     color: colors.text.light,
     textAlign: 'center',
@@ -143,5 +211,51 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: 10,
     paddingHorizontal: 10,
-  }
+  },
+  appleButton: {
+    backgroundColor: '#FFF',
+    width: '100%',
+    padding: 16,
+    borderRadius: 30,
+  },
+  appleButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  appleButtonText: {
+    color: '#000',
+    fontSize: 18,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  appleIcon: {
+    marginBottom: 4,
+  },
+  emailButton: {
+    backgroundColor: 'white',
+    borderWidth: 2,
+    borderColor: '#FFF',
+  },
+  emailButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  emailButtonText: {
+    color: '#000',
+    fontSize: 18,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  emailIcon: {
+    color: '#000',
+  },
+  link: {
+    color: colors.text.light,
+    textDecorationLine: 'underline',
+    fontWeight: '700',
+  },
 }) 
