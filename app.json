@@ -21,14 +21,15 @@
     ],
     "android": {
       "permissions": [
-        "CAMERA",
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE"
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.RECORD_AUDIO"
       ],
       "package": "com.avanti.app"
     },
     "ios": {
-      "bundleIdentifier": "com.avanti.app",
+      "bundleIdentifier": "com.avantiuhh.app",
       "buildNumber": "1",
       "supportsTablet": false,
       "infoPlist": {
@@ -38,8 +39,11 @@
       "config": {
         "usesAppleSignIn": true
       },
-      "icon": "./assets/images/icons/avanti-icon.png"
+      "icon": "./assets/images/icons/avanti-icon.png",
+      "appleTeamId": "L94BT84S6K"
     },
-    "assets": ["./assets/images/*" ]
+    "assets": [
+      "./assets/images/*"
+    ]
   }
-} 
+}
