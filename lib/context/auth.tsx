@@ -3,6 +3,7 @@ import { Session } from '@supabase/supabase-js'
 import { supabase } from '../supabase/supabase'
 import { router, useSegments } from 'expo-router'
 import { View, ActivityIndicator, StyleSheet } from 'react-native'
+import { LoadingView } from '@/app/(auth)/home/components/LoadingView'
 
 export type AuthContextType = {
   session: Session | null
@@ -173,7 +174,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   if (initializing) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#000" />
+        <LoadingView />
       </View>
     )
   }

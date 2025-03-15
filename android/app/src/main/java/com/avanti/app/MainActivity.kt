@@ -1,4 +1,4 @@
-package com.anonymous.avantiapp
+package com.avanti.app
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build

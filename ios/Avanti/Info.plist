@@ -4,10 +4,12 @@
   <dict>
     <key>CADisableMinimumFrameDurationOnPhone</key>
     <true/>
+    <key>CFBundleAllowMixedLocalizations</key>
+    <true/>
     <key>CFBundleDevelopmentRegion</key>
     <string>$(DEVELOPMENT_LANGUAGE)</string>
     <key>CFBundleDisplayName</key>
-    <string>avanti-app</string>
+    <string>Avanti</string>
     <key>CFBundleExecutable</key>
     <string>$(EXECUTABLE_NAME)</string>
     <key>CFBundleIdentifier</key>
@@ -27,8 +29,7 @@
       <dict>
         <key>CFBundleURLSchemes</key>
         <array>
-          <string>acme</string>
-          <string>com.anonymous.avantiapp</string>
+          <string>com.avantiuhh.app</string>
         </array>
       </dict>
     </array>
@@ -49,12 +50,10 @@
     <string>Allow $(PRODUCT_NAME) to access your camera</string>
     <key>NSMicrophoneUsageDescription</key>
     <string>Allow $(PRODUCT_NAME) to access your microphone</string>
+    <key>NSPhotoLibraryAddUsageDescription</key>
+    <string>Avanti needs access to save photos</string>
     <key>NSPhotoLibraryUsageDescription</key>
-    <string>Allow $(PRODUCT_NAME) to access your photos</string>
-    <key>NSUserActivityTypes</key>
-    <array>
-      <string>$(PRODUCT_BUNDLE_IDENTIFIER).expo.index_route</string>
-    </array>
+    <string>The app needs access to your photos to let you select profile pictures.</string>
     <key>UILaunchStoryboardName</key>
     <string>SplashScreen</string>
     <key>UIRequiredDeviceCapabilities</key>

@@ -1,18 +1,49 @@
 {
   "expo": {
-    "scheme": "acme",
-    "plugins": [
-      "expo-router"
-    ],
-    "name": "avanti-app",
-    "slug": "avanti-app",
-    "newArchEnabled": true,
+    "name": "Avanti",
+    "slug": "avanti",
+    "version": "1.0.0",
     "orientation": "portrait",
+    "icon": "./assets/images/icons/avanti-icon.png",
+    "splash": {
+      "image": "./assets/images/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app needs access to your photos to let you select profile pictures.",
+          "photoPickerPermission": true
+        }
+      ]
+    ],
     "android": {
-      "package": "com.anonymous.avantiapp"
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.RECORD_AUDIO"
+      ],
+      "package": "com.avanti.app"
     },
     "ios": {
-      "bundleIdentifier": "com.anonymous.avantiapp"
-    }
+      "bundleIdentifier": "com.avantiuhh.app",
+      "buildNumber": "1",
+      "supportsTablet": false,
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Avanti needs photo library access to let you choose profile pictures",
+        "NSPhotoLibraryAddUsageDescription": "Avanti needs access to save photos"
+      },
+      "config": {
+        "usesAppleSignIn": true
+      },
+      "icon": "./assets/images/icons/avanti-icon.png",
+      "appleTeamId": "L94BT84S6K"
+    },
+    "assets": [
+      "./assets/images/*"
+    ]
   }
 }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Alert } from 'react-native'
+import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Alert, Linking } from 'react-native'
 import { useAuth } from '../../../lib/context/auth'
 import { supabase } from '../../../lib/supabase/supabase'
 import { SafeAreaWrapper } from '../../../components/SafeAreaWrapper'
@@ -189,7 +189,7 @@ export default function Profile() {
       if (error) throw error
       
       await signOut()
-      router.replace('/(public)/welcome')
+
     } catch (error) {
       console.error('Error signing out:', error)
       Alert.alert('Error', 'Failed to sign out')
@@ -229,8 +229,8 @@ export default function Profile() {
           <View style={styles.header}>
             <View style={styles.headerLeft} />
             <Text style={styles.headerTitle}>Avanti</Text>
-            <TouchableOpacity style={styles.headerRight}>
-              <Ionicons name="settings-outline" size={24} color={colors.text.primary} />
+            <TouchableOpacity style={styles.headerRight} onPress={() => Linking.openURL('https://policiesavanti.vercel.app/')}>
+              <Ionicons name="shield-checkmark" size={24} color={colors.text.primary} />
             </TouchableOpacity>
           </View>
           
@@ -294,7 +294,21 @@ export default function Profile() {
             <View style={styles.menuSection}>
               <MenuItem icon="person" title="Profil bearbeiten" onPress={() => {setViewMode('edit'), setIsEditing(true)}} />
               <MenuItem icon="images" title="Vorschau" onPress={() => {setViewMode('preview'), setIsEditing(true)}} />
-              <MenuItem icon="shield-checkmark" title="Sicherheit & Datenschutz" onPress={() => {}} />
+              <MenuItem 
+                icon="document-text" 
+                title="Nutzungsbedingungen" 
+                onPress={() => Linking.openURL('https://policiesavanti.vercel.app/terms')} 
+              />
+              <MenuItem 
+                icon="lock-closed" 
+                title="Datenschutzerklärung" 
+                onPress={() => Linking.openURL('https://policiesavanti.vercel.app/')} 
+              />
+              <MenuItem 
+                icon="information-circle" 
+                title="Cookie-Richtlinie" 
+                onPress={() => Linking.openURL('https://policiesavanti.vercel.app/cookies')} 
+              />
               <MenuItem icon="log-out" title="Abmelden" onPress={handleSignOut} />
               <MenuItem 
                 icon="trash" 
