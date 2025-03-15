@@ -2,124 +2,207 @@ import { createContext, useContext, useEffect, useState } from 'react'
 import { Session } from '@supabase/supabase-js'
 import { supabase } from '../supabase/supabase'
 import { router, useSegments } from 'expo-router'
+import { View, ActivityIndicator, StyleSheet } from 'react-native'
+import { LoadingView } from '@/app/(auth)/home/components/LoadingView'
 
-type AuthContextType = {
+export type AuthContextType = {
   session: Session | null
+  signOut: () => Promise<void>
   loading: boolean
   hasProfile: boolean
+  refreshProfile: () => Promise<void>
+  signUp: (email: string, password: string) => Promise<{ error: Error | null }>
+  signIn: (email: string, password: string) => Promise<{ error: Error | null }>
 }
 
-const AuthContext = createContext<AuthContextType>({ session: null, loading: true, hasProfile: false })
+const AuthContext = createContext<AuthContextType>({
+  session: null,
+  loading: true,
+  hasProfile: false,
+  refreshProfile: async () => {},
+  signOut: async () => {},
+  signUp: async () => ({ error: null }),
+  signIn: async () => ({ error: null }),
+})
 
-// This hook will protect the route access based on user authentication
-function useProtectedRoute(session: Session | null, hasProfile: boolean) {
-  const segments = useSegments()
-  
+function useProtectedRoute(session: Session | null, hasPhone: boolean, hasProfile: boolean) {
+  const segments = useSegments() as string[]
+
   useEffect(() => {
-    console.log('Current segments:', segments)
-    
-    if (!segments?.[0]) {
-      router.replace('/(public)/login')
-      return
-    }
+    const route = async () => {
+      // Get current route group
+      const isAuthGroup = segments[0] === '(auth)'
+      const isOnboarding = segments.includes('onboarding')
 
-    const isPublicGroup = segments[0] === '(public)'
-    const isAuthGroup = segments[0] === '(auth)'
-
-    // Not logged in users can only access public routes
-    if (!session && isAuthGroup) {
-      router.replace('/(public)/login')
-      return
-    }
-
-    // Logged in users with no profile must complete onboarding
-    if (session && !hasProfile && isAuthGroup) {
-      router.replace('/(public)/onboarding/name')
-      return
-    }
-
-    // Logged in users with profile should be in auth routes
-    if (session && hasProfile && isPublicGroup) {
-      // Exception for verify-phone and onboarding flow
-      const isVerifyOrOnboarding = segments.some(segment => 
-        segment === 'verify-phone' || segment === 'onboarding'
-      )
-      if (!isVerifyOrOnboarding) {
-        router.replace('/(auth)/home')
+      // No session -> Welcome
+      if (!session) {
+        if (isAuthGroup) {
+          await router.replace('/(public)/welcome')
+        }
         return
       }
+
+      // Has session but no phone -> Phone
+      if (!hasPhone) {
+        if (!segments.includes('phone')) {
+          await router.replace('/(public)/phone')
+        }
+        return
+      }
+
+      // Has phone but no profile -> Onboarding
+      if (!hasProfile) {
+        if (!isOnboarding) {
+          await router.replace('/(public)/onboarding')
+        }
+        return
+      }
+
+      // Has everything -> Home
+      if (!isAuthGroup) {
+        await router.replace('/(auth)/home')
+      }
     }
-  }, [session, hasProfile, segments])
+
+    route()
+  }, [session, hasPhone, hasProfile, segments])
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [initializing, setInitializing] = useState(true)
   const [session, setSession] = useState<Session | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [hasPhone, setHasPhone] = useState(false)
   const [hasProfile, setHasProfile] = useState(false)
 
-  // Check if user has profile
   const checkProfile = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('Profile')
-        .select('P-ID')
-        .eq('User-ID', userId)
-        .single()
+    const { data } = await supabase
+      .from('Profile')
+      .select('User-ID')
+      .eq('User-ID', userId)
+      .single()
+    return !!data
+  }
 
-      if (error) {
-        if (error.code === 'PGRST116') {
-          // No profile found
-          return false
-        }
-        console.error('Profile check error:', error)
-        return false
-      }
+  const checkPhone = async (userId: string) => {
+    const { data } = await supabase
+      .from('PhoneNumbers')
+      .select('*')
+      .eq('User-ID', userId)
+      .single()
+    return !!data
+  }
 
-      return !!data
-    } catch (e) {
-      console.error('Profile check failed:', e)
-      return false
+  const refreshProfile = async () => {
+    if (session?.user) {
+      const [profileExists, phoneExists] = await Promise.all([
+        checkProfile(session.user.id),
+        checkPhone(session.user.id)
+      ])
+      setHasProfile(profileExists)
+      setHasPhone(phoneExists)
     }
   }
 
   useEffect(() => {
-    // Clear any existing session on mount
-    supabase.auth.signOut().then(() => {
-      supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
+    const initializeAuth = async () => {
+      try {
+        const { data: { session: initialSession } } = await supabase.auth.getSession()
         setSession(initialSession)
+        
         if (initialSession?.user) {
-          checkProfile(initialSession.user.id).then(setHasProfile)
+          const [profileExists, phoneExists] = await Promise.all([
+            checkProfile(initialSession.user.id),
+            checkPhone(initialSession.user.id)
+          ])
+          setHasProfile(profileExists)
+          setHasPhone(phoneExists)
         }
-        setLoading(false)
-      })
-    })
+      } catch (e) {
+        console.error('Error initializing auth:', e)
+      } finally {
+        setInitializing(false)
+      }
+    }
+
+    initializeAuth()
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
-      console.log('Auth state changed:', _event, !!newSession)
       setSession(newSession)
+      
       if (newSession?.user) {
-        const hasProfile = await checkProfile(newSession.user.id)
-        setHasProfile(hasProfile)
+        const [profileExists, phoneExists] = await Promise.all([
+          checkProfile(newSession.user.id),
+          checkPhone(newSession.user.id)
+        ])
+        setHasProfile(profileExists)
+        setHasPhone(phoneExists)
       } else {
         setHasProfile(false)
+        setHasPhone(false)
       }
-      setLoading(false)
     })
 
     return () => subscription.unsubscribe()
   }, [])
 
-  useProtectedRoute(session, hasProfile)
+  useProtectedRoute(session, hasPhone, hasProfile)
 
-  if (loading) {
-    return null // or a loading spinner
+  const signUp = async (email: string, password: string) => {
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+      })
+      return { error }
+    } catch (error) {
+      return { error: error as Error }
+    }
+  }
+
+  const signIn = async (email: string, password: string) => {
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+      return { error }
+    } catch (error) {
+      return { error: error as Error }
+    }
+  }
+
+  if (initializing) {
+    return (
+      <View style={styles.loadingContainer}>
+        <LoadingView />
+      </View>
+    )
   }
 
   return (
-    <AuthContext.Provider value={{ session, loading, hasProfile }}>
+    <AuthContext.Provider value={{ 
+      session, 
+      hasProfile,
+      refreshProfile,
+      signOut: async () => {
+        await supabase.auth.signOut()
+      },
+      signUp,
+      signIn,
+      loading: initializing
+    }}>
       {children}
     </AuthContext.Provider>
   )
 }
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+})
 
 export const useAuth = () => useContext(AuthContext) 

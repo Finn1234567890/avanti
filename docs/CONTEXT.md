@@ -1,5 +1,64 @@
 # Pflichtenheft
 
+# TODO
+
+## High Priority
+1. Fix Page Data Loading
+   - Implement proper loading states DONE
+   - Avoid unnecessary reloads DONE
+   - Add pull-to-refresh where appropriate DONE
+   - Optimize data fetching strategies
+
+2. Fix Profile Page Editing
+   - Improve real-time updates
+   - Add proper validation
+   - Fix image reordering functionality 
+   - Optimize debounced saves
+   - Add loading indicators during saves
+
+3. Fix Navigation Bar
+   - Improve styling and layout DONE
+   - Add active state indicators DONE
+   - Fix navigation transitions DONE
+   - Add badges for notifications/pending requests
+   - Ensure consistent behavior across app
+   - Rearrange navigation items for better UX DONE
+   - Fix components appearing as navigation items DONE
+
+4. Phone Number Implementation
+   - Add phone number field to registration DONE
+   - Implement phone number validation 
+   - Set up SMS verification system 
+   - Handle international phone numbers DONE
+
+5. Phone Verification Flow
+   - Implement SMS code sending
+   - Add verification code input UI
+   - Handle verification timeouts
+   - Add resend code functionality
+   - Implement security measures
+
+6. Styling Improvements
+   - Create consistent design system DONE
+   - Implement dark mode support 
+   - Add proper animations and transitions DONE
+   - Improve accessibility DONE
+   - Make UI more responsive DONE
+   - Add loading skeletons 
+   - Polish visual feedback DONE
+
+7. Algortihm
+   - Implement similarity sorting algorithm DONE
+   - Implement penalty functionality
+
+
+## Future Improvements
+- Add proper error boundaries
+- Implement caching strategy
+- Add offline support
+- Optimize image loading and caching
+- Add proper TypeScript types for all components 
+
 ## Architecture & Tech Stack
 - Frontend: Expo with TypeScript using Expo Router
 - Backend: Node.js using TypeScript
@@ -283,3 +342,44 @@ assets/                   # Static assets
 - Phone verification required (will be implemented using Twilio)
 - Email verification not required
 - Users must complete onboarding after registration
+
+# Authentication Flow
+
+## Registration
+1. User signs up with:
+   - Email (for account management)
+   - Password
+   - Name (for profile)
+
+2. After signup:
+   - Create Profile entry
+   - Collect phone number as profile data
+   - Store phone in Profile table with privacy controls
+
+## Login
+- Simple email + password authentication
+- No SMS verification needed for login
+
+## Phone Number Handling
+- Phone numbers stored in Profile table
+- Row Level Security ensures:
+  - Users can see their own phone number
+  - Users can only see phone numbers of accepted friends
+  - Phone numbers hidden from non-friends
+
+## Benefits
+1. Simpler authentication flow
+2. Easier testing and development
+3. Lower costs (no SMS for auth)
+4. Better privacy control
+5. Still maintains phone number sharing functionality
+
+## Theme
+
+The app uses a consistent color palette defined in `lib/theme/colors.ts`:
+
+- Primary: White (#FFFFFF)
+- Primary Accent: Mint Green (#89DFC2) 
+- Secondary Accent: Hot Pink (#FF69B4)
+
+These colors are used throughout the app to maintain visual consistency. Import them from the theme file rather than hardcoding color values.

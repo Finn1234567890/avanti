@@ -38,3 +38,5 @@ yarn-error.*
 app-example
 
 .env
+
+AuthKey_993VHB72GG.p8
