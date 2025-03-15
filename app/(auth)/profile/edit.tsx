@@ -77,15 +77,13 @@ export function EditProfile({ profile: initialProfile, onClose, onSave, view }: 
         })
       }
     } catch (error) {
-      console.error('Error uploading image:', error)
-      Alert.alert('Error', 'Failed to upload image')
+      Alert.alert('Error', 'Fehler beim Hochladen des Bildes')
     }
   }
 
   const handleDeleteImage = async (imageUrl: string) => {
     if (!profile || profile.images.length <= 2) {
-      console.log('more than 2 images required')
-      Alert.alert('Error', 'Minimum 2 images required')
+      Alert.alert('Error', 'Mindestens 2 Bilder benötigt')
       return
     }
 
@@ -102,8 +100,6 @@ export function EditProfile({ profile: initialProfile, onClose, onSave, view }: 
 
     if (imageError) throw imageError
 
-    console.log('image deleted', imageUrl)
-
     setProfile({
       ...profile,
       images: profile.images.filter(img => img.url !== imageUrl)
@@ -111,11 +107,8 @@ export function EditProfile({ profile: initialProfile, onClose, onSave, view }: 
   }
 
   const handleProfileUpdate = (updates: Partial<FullProfileData>) => {
-    console.log('Profile updated')
     setProfile(prev => prev && { ...prev, ...updates })
   }
-
-  console.log('profile in edit', profile)
   
   return (
     <View style={styles.container}>

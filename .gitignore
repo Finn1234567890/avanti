@@ -39,4 +39,7 @@ app-example
 
 .env
 
+# Apple JWT
 AuthKey_993VHB72GG.p8
+
+generate-apple-jwt.js

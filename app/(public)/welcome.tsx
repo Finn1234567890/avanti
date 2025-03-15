@@ -20,12 +20,6 @@ export default function Welcome() {
 
       if (credential.identityToken) {
         // Log what we get from Apple
-        console.log('Apple credential:', {
-          email: credential.email, // Could be null or relay address
-          fullName: credential.fullName, // Could be null if not shared
-        })
-
-        console.log(credential)
 
         const { data, error } = await supabase.auth.signInWithIdToken({
           provider: 'apple',
@@ -33,11 +27,6 @@ export default function Welcome() {
         })
 
         if (error) throw error
-
-        // Check if we have an email
-        if (!data.user?.email) {
-          console.log('User signing in with Apple without providing email')
-        }
 
       }
     } catch (e: any) {

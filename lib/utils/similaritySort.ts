@@ -75,8 +75,6 @@ export const sortBySimilarity = async (user: ProfileEntry) => {
 
     const sortedByHighestSimilarityWithIndex = indexedEntries.sort((a, b) => b.similarityIndex - a.similarityIndex)
 
-    console.log('Sorted Profiles: ', sortedByHighestSimilarityWithIndex)
-
     const sortedByHighestSimilarity = sortedByHighestSimilarityWithIndex.map((entry) => entry.profileEntry)
 
     return sortedByHighestSimilarity
@@ -84,7 +82,6 @@ export const sortBySimilarity = async (user: ProfileEntry) => {
 
 
 const penaltilizedViewedProfile = async (profile: ProfileEntry, user: ProfileEntry) => {
-    console.log('Penalty for profile: ', profile['User-ID'])
     let penalty = 0
     const { data, error } = await supabase
         .from('ProfileViews')
@@ -93,7 +90,6 @@ const penaltilizedViewedProfile = async (profile: ProfileEntry, user: ProfileEnt
         .eq('user_id', user['User-ID'])
     
     if (error) {
-        console.log('Error fetching profile views:', error)
         return penalty
     }
 
@@ -106,8 +102,5 @@ const penaltilizedViewedProfile = async (profile: ProfileEntry, user: ProfileEnt
         // Logarithmic decay with base 2, rounded to 2 decimal places
         penalty = 2 * Number((1 / (1 + Math.log2(1 + hoursDiff))).toFixed(2))
     }
-
-    console.log('Penalty: ', penalty)
-    
     return penalty
 }

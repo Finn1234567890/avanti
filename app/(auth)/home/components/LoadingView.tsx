@@ -50,8 +50,6 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   container: {
-    borderWidth: 1,
-    borderColor: 'red',
     height: screenHeight,
     width: '100%',
     position: 'absolute',

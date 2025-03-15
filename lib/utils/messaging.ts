@@ -13,12 +13,10 @@ export async function openMessaging(platform: string, phoneNumber: string, name:
         : cleanedPhoneNumber
         
       const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${defaultMessage}`
-      console.log("Trying WhatsApp URL:", whatsappUrl)
       
       const canOpenWhatsapp = await Linking.canOpenURL(whatsappUrl)
 
       if (canOpenWhatsapp) {
-        console.log("Opening WhatsApp")
         await Linking.openURL(whatsappUrl)
         return
     }}
@@ -32,11 +30,8 @@ export async function openMessaging(platform: string, phoneNumber: string, name:
         default: `sms:${cleanedPhoneNumber}?body=${defaultMessage}`
       })
     
-
-      console.log("Trying SMS URL:", smsUrl)
       const canOpenSms = await Linking.canOpenURL(smsUrl)
       if (canOpenSms) {
-        console.log("Opening SMS")
         await Linking.openURL(smsUrl)
         return
       }

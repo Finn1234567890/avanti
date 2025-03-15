@@ -9,8 +9,6 @@ type UploadImageParams = {
 
 export async function uploadImage({ base64Image, userId, profileId }: UploadImageParams) {
   try {
-    console.log("uploading image")
-    
     // Validate base64Image
     if (!base64Image || typeof base64Image !== 'string') {
       throw new Error('Invalid image data')

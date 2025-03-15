@@ -21,7 +21,6 @@ export function PreviewScreen({ profile }: {profile: FullProfileData}) {
     images: profileImages.map((image) => ({ url: image })),
   }
   
-  console.log('Profile data: ', profileData)
   return (
     <ProfileCard profile={profileData} preview={true}/>
   )

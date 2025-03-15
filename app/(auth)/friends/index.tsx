@@ -64,9 +64,6 @@ export default function Friends() {
         throw userError
       }
 
-      console.log('logged in user name', userData?.name)
-      console.log('session.user.id', session.user.id)
-
       setUserName(userData?.name)
 
       // Get all friendships where user is involved
@@ -78,7 +75,6 @@ export default function Friends() {
 
       if (error) throw error
 
-      console.log('friendshipsData', friendshipsData)
 
       if (friendshipsData) {
         friendshipsData.map(async (friendship) => {
@@ -135,8 +131,6 @@ export default function Friends() {
 
             friendshipDataEntry.displayedPhone = phoneData?.phone_number
           }
-
-          console.log('friendshipDataEntry', friendshipDataEntry)
 
           setFriendships((prev) => [...prev, friendshipDataEntry])
         })
@@ -234,7 +228,6 @@ export default function Friends() {
     setIsInspecting(null)
   }
 
-  console.log('Friendships', friendships)
 
   const EmptyFriendsList = () => (
     <View style={styles.emptyContainer}>
