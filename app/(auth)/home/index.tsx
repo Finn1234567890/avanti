@@ -76,7 +76,6 @@ export default function Home() {
       // 3. Load first page using the local sortedProfiles variable
       await loadProfilePage(0, sortedProfiles, userProfileData)
     } catch (e) {
-      console.error('Error initializing profiles:', e)
       setError('Failed to load profiles')
     } finally {
       setLoading(false)
@@ -85,14 +84,13 @@ export default function Home() {
 
   const setProfileAsViewed = async (profile: ProfileEntry, userProfile: ProfileEntry) => {
     const viewedTime = new Date().toISOString()
-    console.log('Setting profile as viewed: ' + profile['User-ID'] + ' for user: ' + userProfile!['User-ID'])
 
     const { error } = await supabase
       .from('ProfileViews')
       .upsert({ user_id: userProfile!['User-ID'], viewed_profile_id: profile['User-ID'], viewed_at: viewedTime })
 
     if (error) {
-      console.error('Error setting profile as viewed:', error)
+      throw error
     }
   }
 
@@ -107,21 +105,13 @@ export default function Home() {
 
       const userProfileToUse = userProfileOverride || userProfile
 
-      console.log('Loading Profiles: ' + pageProfiles.length)
-      console.log('Profiles: ', pageProfiles)
-
       // Only try to set as viewed if we actually have profiles AND userProfile
       if (pageProfiles && pageProfiles.length > 0 && userProfileToUse) {
         for (const profile of pageProfiles) {
           await setProfileAsViewed(profile, userProfileToUse)
         }
-      } else {
-        console.log('Missing required data:', { 
-          hasProfiles: pageProfiles?.length > 0,
-          hasUserProfile: !!userProfile 
-        })
-      }
-      
+      } 
+            
       // Fetch images for this page of profiles
       const profilesWithImages = await Promise.all(
         pageProfiles.map(async (profile) => {

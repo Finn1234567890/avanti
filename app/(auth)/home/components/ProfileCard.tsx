@@ -66,7 +66,6 @@ export function ProfileCard({ profile, preview }: { profile: Profile, preview: b
       if (error && error.code !== 'PGRST116') throw error // PGRST116 is "no rows returned"
       if (data) setConnectionStatus(data.status)
     } catch (error) {
-      console.log('There is not friendship yet:', error)
     }
   }
 

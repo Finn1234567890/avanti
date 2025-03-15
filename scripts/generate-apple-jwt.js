@@ -16,5 +16,3 @@ const token = jwt.sign({}, privateKey, {
     kid: '993VHB72GG'
   }
 });
-
-console.log(token); 
