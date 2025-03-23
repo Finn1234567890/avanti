@@ -110,8 +110,8 @@ export default function Home() {
         for (const profile of pageProfiles) {
           await setProfileAsViewed(profile, userProfileToUse)
         }
-      } 
-            
+      }
+      
       // Fetch images for this page of profiles
       const profilesWithImages = await Promise.all(
         pageProfiles.map(async (profile) => {

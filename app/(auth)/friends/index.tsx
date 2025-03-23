@@ -228,6 +228,33 @@ export default function Friends() {
     setIsInspecting(null)
   }
 
+  const handleDeleteFriend = (friend: FriendshipWithProfileAndImages) => {
+    Alert.alert(
+      'Freund entfernen',
+      `Bist du dir sicher, dass du ${friend.friendName} als Freund entfernen willst?`,
+      [
+        { text: 'Abbrechen', style: 'cancel' },
+        {
+          text: 'Entfernen',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const { error } = await supabase
+                .from('Friendships')
+                .delete()
+                .eq('friendship-id', friend['friendship-id'])
+
+              if (error) throw error
+              loadFriendships()
+            } catch (error) {
+              console.error('Error removing friend:', error)
+              Alert.alert('Error', 'Failed to remove friend')
+            }
+          }
+        }
+      ]
+    )
+  }
 
   const EmptyFriendsList = () => (
     <View style={styles.emptyContainer}>
@@ -243,6 +270,73 @@ export default function Friends() {
       </TouchableOpacity>
     </View>
   )
+
+  const renderFriendCard = (item: FriendshipWithProfileAndImages) => (
+    <View key={item['friendship-id']} style={styles.friendCard}>
+      <LinearGradient
+        colors={[colors.background.secondary, colors.background.secondary]}
+        style={styles.friendCardContent}
+      >
+        <TouchableOpacity 
+          style={styles.friendHeader}
+          onPress={() => handleInspect(item)}
+        >
+          {item.images?.[0] && (
+            <Image 
+              src={item.images[0].url}
+              style={styles.profileImage}
+            />
+          )}
+          <View style={styles.friendInfo}>
+            <Text style={styles.name}>{item.friendName}</Text>
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>
+                <Text style={styles.statusDot}>●{' '}</Text>
+                Verbunden
+              </Text>
+            </View>
+          </View>
+          <Ionicons name="chevron-forward" size={34} color={colors.text.secondary} />
+        </TouchableOpacity>
+
+        {item.displayedPhone && (
+          <View style={styles.phoneContainer}>
+            <Text style={styles.phone}>{item.displayedPhone}</Text>
+            <TouchableOpacity onPress={() => handleCopyNumber(item)}>
+              <Ionicons name="copy-outline" size={20} color={colors.text.secondary} />
+            </TouchableOpacity>
+          </View>
+        )}
+
+        <View style={styles.messageSection}>
+          <Text style={styles.messageLabel}>ANSCHREIBEN VIA</Text>
+          <View style={styles.messageButtons}>
+            <TouchableOpacity 
+              style={[styles.messageButton, styles.whatsappButton]}
+              onPress={() => handleMessage(item, 'whatsapp')}
+            >
+              <Ionicons name="logo-whatsapp" size={20} color={'#25D366'} />
+              <Text style={styles.whatsappButtonText}>WhatsApp</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.messageButton, styles.smsButton]}
+              onPress={() => handleMessage(item, 'sms')}
+            >
+              <Ionicons name="chatbubble-outline" size={20} color={colors.text.primary} />
+              <Text style={styles.smsButtonText}>SMS</Text>
+            </TouchableOpacity>
+          </View>
+          <TouchableOpacity 
+            style={styles.deleteButton}
+            onPress={() => handleDeleteFriend(item)}
+          >
+            <Ionicons name="trash-outline" size={20} color={colors.text.light} />
+            <Text style={styles.deleteButtonText}>Freund Entfernen</Text>
+          </TouchableOpacity>
+        </View>
+      </LinearGradient>
+    </View>
+  );
 
   return (
     <SafeAreaWrapper>
@@ -380,65 +474,7 @@ export default function Friends() {
                 <EmptyFriendsList />
               ) : (
                 <View>
-                  {acceptedFriendships.map(item => (
-                    <View key={item['friendship-id']} style={styles.friendCard}>
-                      <LinearGradient
-                        colors={[colors.background.secondary, colors.background.secondary]}
-                        style={styles.friendCardContent}
-                      >
-                        <TouchableOpacity 
-                          style={styles.friendHeader}
-                          onPress={() => handleInspect(item)}
-                        >
-                          {item.images?.[0] && (
-                            <Image 
-                              src={item.images[0].url}
-                              style={styles.profileImage}
-                            />
-                          )}
-                          <View style={styles.friendInfo}>
-                            <Text style={styles.name}>{item.friendName}</Text>
-                            <View style={styles.badge}>
-                              <Text style={styles.badgeText}>
-                                <Text style={styles.statusDot}>●{' '}</Text>
-                                Verbunden
-                              </Text>
-                            </View>
-                          </View>
-                          <Ionicons name="chevron-forward" size={34} color={colors.text.secondary} />
-                        </TouchableOpacity>
-
-                        {item.displayedPhone && (
-                          <View style={styles.phoneContainer}>
-                            <Text style={styles.phone}>{item.displayedPhone}</Text>
-                            <TouchableOpacity onPress={() => handleCopyNumber(item)}>
-                              <Ionicons name="copy-outline" size={20} color={colors.text.secondary} />
-                            </TouchableOpacity>
-                          </View>
-                        )}
-
-                        <View style={styles.messageSection}>
-                          <Text style={styles.messageLabel}>ANSCHREIBEN VIA</Text>
-                          <View style={styles.messageButtons}>
-                            <TouchableOpacity 
-                              style={[styles.messageButton, styles.whatsappButton]}
-                              onPress={() => handleMessage(item, 'whatsapp')}
-                            >
-                              <Ionicons name="logo-whatsapp" size={20} color={'#25D366'} />
-                              <Text style={styles.whatsappButtonText}>WhatsApp</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity 
-                              style={[styles.messageButton, styles.smsButton]}
-                              onPress={() => handleMessage(item, 'sms')}
-                            >
-                              <Ionicons name="chatbubble-outline" size={20} color={colors.text.primary} />
-                              <Text style={styles.smsButtonText}>SMS</Text>
-                            </TouchableOpacity>
-                          </View>
-                        </View>
-                      </LinearGradient>
-                    </View>
-                  ))}
+                  {acceptedFriendships.map(renderFriendCard)}
                 </View>
               )}
             </View>
@@ -581,6 +617,22 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 20,
     maxHeight: 40,
+  },
+  deleteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 8,
+    borderRadius: 20,
+    maxHeight: 40,
+    backgroundColor: '#FF2D55',
+    marginTop: 10,
+  },
+  deleteButtonText: {
+    color: colors.text.light,
+    fontSize: 13,
+    fontWeight: '600',
+    marginLeft: 6,
   },
   whatsappButton: {
     borderWidth: 1,

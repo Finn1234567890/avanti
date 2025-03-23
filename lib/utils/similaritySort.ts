@@ -29,7 +29,7 @@ const calculateSimilarityIndex = async (user: ProfileEntry, profile: ProfileEntr
     let similarityIndex = 0
 
     if (user.party_mode && profile.party_mode) {
-        similarityIndex += 2
+        similarityIndex += 3 
     }
 
     if (user && profile) {

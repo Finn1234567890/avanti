@@ -150,10 +150,8 @@ export default function Profile() {
         .eq('status', 'accepted')
 
       if (error) throw error
-      console.log("Friendships", data)
       setFriendshipCount(data?.length || 0)
     } catch (error) {
-      console.error('Error loading friendship count:', error)
     }
   }
 
@@ -197,7 +195,6 @@ export default function Profile() {
   }
 
   const togglePartyMode = async () => {
-    console.log("Toggling party mode")
 
     try {
       const { error } = await supabase
