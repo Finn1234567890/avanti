@@ -210,6 +210,54 @@ export function ProfileCard({ profile, preview }: { profile: Profile, preview: b
     })
   }
 
+  const handleReport = async () => {
+    try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+      Alert.alert(
+        'Profil melden',
+        'Möchtest du dieses Profil melden, weil es gegen unsere Richtlinien verstößt? Wenn du das Profil meldest, wird es dir nicht mehr angezeigt.',
+        [
+          {
+            text: 'Abbrechen',
+            style: 'cancel',
+          },
+          {
+            text: 'Melden',
+            style: 'destructive',
+            onPress: async () => {
+              if (!session?.user?.id) return;
+              
+              const { error } = await supabase.from('Reports').insert({
+                reporter_id: session.user.id,
+                reported_user_id: profile['User-ID'],
+              })
+
+              const { error: deleteError } = await supabase
+                .from('Friendships')
+                .delete()
+                .or(`requester-ID.eq.${session.user.id},requester-ID.eq.${profile['User-ID']}`)
+                .or(`receiver-ID.eq.${profile['User-ID']},receiver-ID.eq.${session.user.id}`)
+
+              if (deleteError) {
+                console.error('Error deleting friendship:', deleteError)
+              }
+
+              if (error) {
+                console.error('Error reporting:', error)
+                Alert.alert('Error', 'Could not report profile')
+                return
+              }
+
+              Alert.alert('Erfolg', 'Profil wurde gemeldet')
+            },
+          },
+        ]
+      )
+    } catch (error) {
+      console.error('Error reporting profile:', error)
+    }
+  }
+
   const renderPreferences = () => {
     if (!profile.preferences) return null;
     
@@ -244,7 +292,9 @@ export function ProfileCard({ profile, preview }: { profile: Profile, preview: b
       style={styles.firstScreenGradient}
     >
       <View style={preview ? styles.profileInfoPreview : styles.profileInfo}>
-        <Text style={styles.name}>{profile.name}</Text>
+        <View style={styles.headerRow}>
+          <Text style={styles.name}>{profile.name}</Text>
+        </View>
         {renderMajorWithIcon()}
         <Text style={styles.bio} numberOfLines={5}>
           {profile.description}
@@ -382,6 +432,18 @@ export function ProfileCard({ profile, preview }: { profile: Profile, preview: b
                 transition={200}
                 cachePolicy="memory-disk"
               />
+              {session?.user?.id !== profile['User-ID'] && (
+                <TouchableOpacity 
+                  onPress={handleReport}
+                  style={styles.reportButton}
+                >
+                  <Ionicons 
+                    name="flag-outline" 
+                    size={24} 
+                    color={colors.text.light} 
+                  />
+                </TouchableOpacity>)}
+              
               <LinearGradient
                 colors={[
                   'rgba(0,0,0,0.6)',
@@ -682,5 +744,20 @@ const styles = StyleSheet.create({
     color: colors.text.light,
     fontSize: 12,
     fontWeight: '600',
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+  },
+  reportButton: {
+    position: 'absolute',
+    top: 18,
+    left: 16,
+    padding: 8,
+    zIndex: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    borderRadius: 20,
   },
 }) 
