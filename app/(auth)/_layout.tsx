@@ -49,7 +49,7 @@ export default function AuthLayout() {
         }}
       />
       <Tabs.Screen
-        name="profile"
+        name="profile/index"
         options={{
           title: 'Profil',
           tabBarIcon: ({ color }) => (
