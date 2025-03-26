@@ -2,7 +2,8 @@
   "expo": {
     "name": "Avanti UHH",
     "slug": "avanti",
-    "version": "1.0.0",
+    "version": "1.0.3",
+    "scheme": "avanti",
     "orientation": "portrait",
     "icon": "./assets/images/icons/avanti-icon-new.png",
     "splash": {
@@ -30,7 +31,7 @@
     },
     "ios": {
       "bundleIdentifier": "com.avantiuhh.app",
-      "buildNumber": "1",
+      "buildNumber": "5",
       "supportsTablet": false,
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Avanti needs photo library access to let you choose profile pictures",
@@ -44,6 +45,10 @@
     },
     "assets": [
       "./assets/images/*"
-    ]
+    ],
+    "experiments": {
+      "tsconfigPaths": true,
+      "newArchEnabled": true
+    }
   }
 }

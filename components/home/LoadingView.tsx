@@ -35,7 +35,7 @@ export function LoadingView() {
   return (
     <View style={styles.container}>
       <Animated.View style={[styles.iconContainer, { transform: [{ translateY }] }]}>
-        <Image source={require('../../../../assets/images/load-icon.png')} style={styles.icon} />
+        <Image source={require('../../assets/images/load-icon.png')} style={styles.icon} />
       </Animated.View>
 
     </View>

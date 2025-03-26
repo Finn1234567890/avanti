@@ -1,7 +1,7 @@
 import React from 'react'
 import { View, StyleSheet, Image, TouchableOpacity, Text } from 'react-native'
 import * as Haptics from 'expo-haptics'
-import { colors } from '../../../../lib/theme/colors'
+import { colors } from '../../lib/theme/colors'
 
 type Props = {
   images: { url: string, publicUrl: string }[]

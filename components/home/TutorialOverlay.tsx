@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet, Dimensions, TouchableOpacity, Animated } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { colors } from '../../../../lib/theme/colors'
+import { colors } from '../../lib/theme/colors'
 import { useState, useEffect } from 'react'
 
 type Props = {

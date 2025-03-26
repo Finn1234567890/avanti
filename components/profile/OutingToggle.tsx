@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native
 import { LinearGradient } from 'expo-linear-gradient';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import * as Haptics from 'expo-haptics';
-import { colors } from '../../../../lib/theme/colors';
+import { colors } from '../../lib/theme/colors';
 
 type OutingToggleProps = {
   isEnabled: boolean;
