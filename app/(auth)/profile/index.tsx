@@ -4,16 +4,16 @@ import { useAuth } from '../../../lib/context/auth'
 import { supabase } from '../../../lib/supabase/supabase'
 import { SafeAreaWrapper } from '../../../components/SafeAreaWrapper'
 import { router } from 'expo-router'
-import { EditProfile } from './edit'
+import { EditProfile } from '../../../components/profile/edit'
 import { Image as ExpoImage } from 'expo-image'
 import { Ionicons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
 import { colors } from '../../../lib/theme/colors'
-import type { ProfileEntry, FullProfileData } from './types'
+import type { ProfileEntry, FullProfileData } from '../../../types/profile/types'
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
-import { ViewMode } from './edit';
+import { ViewMode } from '../../../components/profile/edit';
 import * as Haptics from 'expo-haptics';
-import { OutingToggle } from './components/OutingToggle';
+import { OutingToggle } from '@/components/profile/OutingToggle';
 
 type StatCardProps = {
   icon: keyof typeof Ionicons.glyphMap
@@ -94,6 +94,7 @@ export default function Profile() {
     loadProfile()
     loadFriendshipCount()
   }, [])
+
 
   const loadProfile = async () => {
     setLoading(true)

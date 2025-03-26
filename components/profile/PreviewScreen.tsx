@@ -1,8 +1,8 @@
 import React, { useState } from 'react'
 import { View, Text, Image, ScrollView, StyleSheet, Dimensions, TouchableOpacity } from 'react-native'
-import type { FullProfileData } from '../types'
-import { ProfileCard } from '../../home/components/ProfileCard'
-import { Profile } from '../../../../lib/types/profile'
+import type { FullProfileData } from '../../types/profile/types'
+import { ProfileCard } from '@/components/home/ProfileCard'
+import { Profile } from '../../lib/types/profile'
 
 export function PreviewScreen({ profile }: {profile: FullProfileData}) {
 

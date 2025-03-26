@@ -10,8 +10,8 @@ import { Ionicons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
 import { colors } from '../../../lib/theme/colors'
 import { ProfileEntry } from '@/lib/types/profile'
-import { Profile } from '../home/types'
-import { ProfileCard } from '../home/components/ProfileCard'
+import { Profile } from '../../../types/home/types'
+import { ProfileCard } from '../../../components/home/ProfileCard'
 import { router } from 'expo-router'
 
 
