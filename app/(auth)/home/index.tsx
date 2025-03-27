@@ -222,7 +222,7 @@ export default function Home() {
           }
         >
           <Text style={styles.emptyText}>
-            Gerade können dir keine Profile mehr angezeigt werden. Versuche es später nochmal
+            Es gibt keine Profile mehr, mit denen du nicht schon vernetzt bist oder die du nicht blockiert hast.
           </Text>
         </ScrollView>
       </SafeAreaWrapper>

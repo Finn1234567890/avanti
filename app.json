@@ -2,7 +2,7 @@
   "expo": {
     "name": "Avanti UHH",
     "slug": "avanti",
-    "version": "1.0.3",
+    "version": "1.0.5",
     "scheme": "avanti",
     "orientation": "portrait",
     "icon": "./assets/images/icons/avanti-icon-new.png",
@@ -20,18 +20,9 @@
         }
       ]
     ],
-    "android": {
-      "permissions": [
-        "android.permission.CAMERA",
-        "android.permission.READ_EXTERNAL_STORAGE",
-        "android.permission.WRITE_EXTERNAL_STORAGE",
-        "android.permission.RECORD_AUDIO"
-      ],
-      "package": "com.avanti.app"
-    },
     "ios": {
       "bundleIdentifier": "com.avantiuhh.app",
-      "buildNumber": "5",
+      "buildNumber": "8",
       "supportsTablet": false,
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Avanti needs photo library access to let you choose profile pictures",
