@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, Keyboard } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { router } from 'expo-router'
 import * as Haptics from 'expo-haptics'
@@ -43,32 +43,67 @@ export function OnboardingScreenLayout({
     onNext()
   }
 
+  const dismissKeyboard = () => {
+    Keyboard.dismiss()
+  }
+
   return (
-    <ContentWrapper 
-      behavior={useKeyboardAvoid ? (Platform.OS === 'ios' ? 'padding' : 'height') : undefined}
-      style={styles.container}
-    >
-      <View style={styles.content}>
-        {onBack && (
-          <TouchableOpacity 
-            style={styles.backButton}
-            onPress={onBack || (() => router.back())}
-          >
-            <Ionicons name="chevron-back" size={32} color={colors.text.primary} />
-          </TouchableOpacity>)}
+    <View style={styles.container}>
+      <ContentWrapper 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardAvoidingView}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      >
+        {useKeyboardAvoid ? (
+          <TouchableWithoutFeedback onPress={dismissKeyboard}>
+            <View style={styles.content}>
+              {onBack && (
+                <TouchableOpacity 
+                  style={styles.backButton}
+                  onPress={onBack || (() => router.back())}
+                >
+                  <Ionicons name="chevron-back" size={32} color={colors.text.primary} />
+                </TouchableOpacity>
+              )}
 
-        <View style={onBack ? styles.headerContainer : styles.headerContainerNoBack}>
-          <Text style={styles.title}>
-            {title}{'\n'}
-            <Text style={styles.highlight}>{subtitle}</Text>
-          </Text>
-        </View>
+              <View style={onBack ? styles.headerContainer : styles.headerContainerNoBack}>
+                <Text style={styles.title}>
+                  {title}{'\n'}
+                  <Text style={styles.highlight}>{subtitle}</Text>
+                </Text>
+              </View>
 
-        <View style={styles.mainContent}>
-          {children}
-          {hint && <Text style={styles.hint}>{hint}</Text>}
-        </View>
-      </View>
+              <View style={styles.mainContent}>
+                {children}
+                {hint && <Text style={styles.hint}>{hint}</Text>}
+              </View>
+            </View>
+          </TouchableWithoutFeedback>
+        ) : (
+          <View style={styles.content}>
+            {onBack && (
+              <TouchableOpacity 
+                style={styles.backButton}
+                onPress={onBack || (() => router.back())}
+              >
+                <Ionicons name="chevron-back" size={32} color={colors.text.primary} />
+              </TouchableOpacity>
+            )}
+
+            <View style={onBack ? styles.headerContainer : styles.headerContainerNoBack}>
+              <Text style={styles.title}>
+                {title}{'\n'}
+                <Text style={styles.highlight}>{subtitle}</Text>
+              </Text>
+            </View>
+
+            <View style={styles.mainContent}>
+              {children}
+              {hint && <Text style={styles.hint}>{hint}</Text>}
+            </View>
+          </View>
+        )}
+      </ContentWrapper>
 
       <View style={styles.footer}>
         {error && <Text style={styles.errorText}>{error}</Text>}
@@ -86,7 +121,7 @@ export function OnboardingScreenLayout({
           </Text>
         </TouchableOpacity>
       </View>
-    </ContentWrapper>
+    </View>
   )
 }
 
@@ -94,6 +129,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.primary,
+  },
+  keyboardAvoidingView: {
+    flex: 1,
   },
   content: {
     flex: 1,
@@ -108,9 +146,6 @@ const styles = StyleSheet.create({
     left: 12,
     padding: 8,
     zIndex: 1,
-  },
-  backButtonDisabled: {
-    opacity: 0.5,
   },
   headerContainer: {
     alignItems: 'flex-start',
@@ -135,6 +170,11 @@ const styles = StyleSheet.create({
   footer: {
     paddingHorizontal: 24,
     paddingBottom: 24,
+    backgroundColor: colors.primary,
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
   },
   errorText: {
     color: colors.status.error,
@@ -152,7 +192,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accent.primary,
     padding: 16,
     borderRadius: 30,
-    marginBottom: 50,
+    marginBottom: Platform.OS === 'ios' ? 20 : 10,
   },
   submitButtonDisabled: {
     opacity: 0.5,
@@ -163,5 +203,4 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
   },
-
 }) 

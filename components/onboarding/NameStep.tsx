@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import { OnboardingStepProps } from '../../lib/types/onboarding'
 import { OnboardingScreenLayout } from '../OnboardingScreenLayout'
 import { colors } from '../../lib/theme/colors'
+import { profanityCheck } from '@/lib/utils/profanityCheck'
 
 export function NameStep({ onNext, onBack }: OnboardingStepProps) {
   const [name, setName] = useState('')
@@ -34,10 +35,25 @@ export function NameStep({ onNext, onBack }: OnboardingStepProps) {
     setError(null)
 
     try {
+      const myRe = /^[A-Za-zÀ-ÖØ-öø-ÿ\s-]+$/
+      const validInput = myRe.test(name.trim())
+
+      if (!validInput || name.trim().length < 2 ) throw new Error("REGEX_ERROR")
+
+      const containsProfanity = profanityCheck(name.trim())
+
+      if (containsProfanity) throw new Error("PROFANITY_ERROR")
+
       await AsyncStorage.setItem('onboarding_name', name.trim())
       onNext()
-    } catch (e) {
-      setError('Ein Fehler ist aufgetreten')
+    } catch (error) {
+      if (error instanceof Error && error.message === "PROFANITY_ERROR") {
+        setError('Das ist nicht dein Name...')
+      } else if (error instanceof Error && error.message === "REGEX_ERROR") {
+        setError('Gebe bitte nur dein Namen an') 
+      } else {
+        setError('Ein Fehler ist aufgetreten')
+      }
     } finally {
       setLoading(false)
     }

@@ -116,6 +116,15 @@ export function InterestsStep({ onNext, onBack }: OnboardingStepProps) {
     </View>
   )
 
+  const renderInterestSection2 = (title: string, interests: readonly string[]) => (
+    <View style={styles.section2}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      <View style={styles.pillContainer}>
+        {interests.map(renderInterestPill)}
+      </View>
+    </View>
+  )
+
   return (
     <OnboardingScreenLayout
       title="Was sind deine"
@@ -125,13 +134,14 @@ export function InterestsStep({ onNext, onBack }: OnboardingStepProps) {
       buttonDisabled={selectedInterests.length < 2}
       error={error}
       buttonText={`${selectedInterests.length}/2 · Weiter`}
+      useKeyboardAvoid={false}
     >
       <ScrollView 
         style={styles.container}
         showsVerticalScrollIndicator={false}
       >
         {renderInterestSection('Freizeit & Hobbys', RECREATIONAL_INTERESTS)}
-        {renderInterestSection('Akademische Interessen', ACADEMIC_INTERESTS)}
+        {renderInterestSection2('Akademische Interessen', ACADEMIC_INTERESTS)}
       </ScrollView>
     </OnboardingScreenLayout>
   )
@@ -143,6 +153,9 @@ const styles = StyleSheet.create({
   },
   section: {
     marginBottom: 24,
+  },
+  section2: {
+    marginBottom: 120,
   },
   sectionTitle: {
     fontSize: 16,

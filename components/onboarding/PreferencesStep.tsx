@@ -38,7 +38,7 @@ export function PreferencesStep({ onNext, onBack }: OnboardingStepProps) {
 
   const togglePreference = async (preference: string) => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
-    
+
     const newPreferences = selectedPreferences.includes(preference)
       ? selectedPreferences.filter(i => i !== preference)
       : [...selectedPreferences, preference]
@@ -71,7 +71,7 @@ export function PreferencesStep({ onNext, onBack }: OnboardingStepProps) {
     >
       <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
         <Text style={styles.hint}>
-          Wir verbinden dich mit Studenten, die Ähnliches suchen.
+          Wir verbinden dich mit Studenten, die Ähnliches suchen. Du kannst es später noch ändern.
         </Text>
         <View style={styles.preferencesGrid}>
           {PREFRENCES.map((preference) => (
