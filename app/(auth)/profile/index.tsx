@@ -307,6 +307,11 @@ export default function Profile() {
                 title="Cookie-Richtlinie" 
                 onPress={() => Linking.openURL('https://policiesavanti.vercel.app/cookies')} 
               />
+              <MenuItem 
+                icon="flag" 
+                title="Melden & Blockieren" 
+                onPress={() => Linking.openURL('https://policiesavanti.vercel.app/support#melden')} 
+              />
               <MenuItem icon="log-out" title="Abmelden" onPress={handleSignOut} />
               <MenuItem 
                 icon="trash" 

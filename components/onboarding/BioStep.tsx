@@ -4,12 +4,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import { OnboardingStepProps } from '../../lib/types/onboarding'
 import { OnboardingScreenLayout } from '../OnboardingScreenLayout'
 import { colors } from '../../lib/theme/colors'
+import { profanityCheck } from '@/lib/utils/profanityCheck'
 
 const PLACEHOLDER_EXAMPLES = [
   "Suche Nachhilfe in Mathe 2,\nfalls jemand ganz gut ist\nbitte schreib mir",
-  
+
   "Bin neu in Hamburg und\nsuche mit ein paar Freundinnen\nStudentenpartys! Meldet euch",
-  
+
   "Spiele in einer U21\nVolleyball-Mannschaft. Wer\nLust hat zu joinen, schreibt mich an",
 ] as const
 
@@ -43,7 +44,7 @@ export function BioStep({ onNext, onBack }: OnboardingStepProps) {
         currentText += nextChar
         setDisplayedPlaceholder(currentText)
         currentIndex++
-        
+
         // Adjust timing for better readability
         const delay = nextChar === '\n' ? 200 : 50 // Longer pause at line breaks
         typingSpeedRef.current = setTimeout(typeNextChar, delay)
@@ -92,19 +93,29 @@ export function BioStep({ onNext, onBack }: OnboardingStepProps) {
       return
     }
 
-    if (bio.length > MAX_CHARS) {
-      setError(`Dein Text ist zu lang (maximal ${MAX_CHARS} Zeichen)`)
-      return
-    }
+
 
     setLoading(true)
     setError(null)
 
     try {
+      if (bio.length > MAX_CHARS) {
+        setError(`Dein Text ist zu lang (maximal ${MAX_CHARS} Zeichen)`)
+        return
+      }
+
+      if (profanityCheck(bio.trim())) {
+        throw new Error("PROFANITY_ERROR")
+      }
+
       await AsyncStorage.setItem('onboarding_bio', bio.trim())
       onNext()
     } catch (e) {
-      setError('Ein Fehler ist aufgetreten')
+      if (e instanceof Error && e.message === "PROFANITY_ERROR") {
+        setError('Bitte gebe was vernünftiges ein...')
+      } else {
+        setError('Ein Fehler ist aufgetreten')
+      }
     } finally {
       setLoading(false)
     }
