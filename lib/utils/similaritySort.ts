@@ -25,15 +25,23 @@ const getAllUserProfiles = async (user: ProfileEntry): Promise<ProfileEntry[]> =
     }
 } 
 
-const calculateSimilarityIndex = async (user: ProfileEntry, profile: ProfileEntry) => {
+const calculateSimilarityIndex = (
+    user: ProfileEntry, 
+    profile: ProfileEntry, 
+    viewedAt?: number
+) => {
     let similarityIndex = 0
 
     if (user.party_mode && profile.party_mode) {
         similarityIndex += 3 
     }
 
+    if (user.on_campus && profile.on_campus) {
+        similarityIndex += 2 
+    }
+
     if (user && profile) {
-        const penalty = await penaltilizedViewedProfile(profile, user)
+        const penalty = viewedAt ? 2 * Number((1 / (1 + Math.log2(1 + (Date.now() - viewedAt) / (1000 * 60 * 60)))).toFixed(2)) : 0
         similarityIndex -= penalty
     }
 
@@ -59,48 +67,36 @@ const calculateSimilarityIndex = async (user: ProfileEntry, profile: ProfileEntr
     }
 
     return similarityIndex
-
 }
 
 export const sortBySimilarity = async (user: ProfileEntry) => {
-    let indexedEntries: EntryWithIndex[] = []
-
     const profiles = await getAllUserProfiles(user)
-
-    for (const profile of profiles) {
-        const similarityIndex = await calculateSimilarityIndex(user, profile)
-        const indexedEntry: EntryWithIndex = {profileEntry: profile, similarityIndex: similarityIndex}
-        indexedEntries.push(indexedEntry)
-    }
-
-    const sortedByHighestSimilarityWithIndex = indexedEntries.sort((a, b) => b.similarityIndex - a.similarityIndex)
-
-    const sortedByHighestSimilarity = sortedByHighestSimilarityWithIndex.map((entry) => entry.profileEntry)
-
-    return sortedByHighestSimilarity
-}
-
-
-const penaltilizedViewedProfile = async (profile: ProfileEntry, user: ProfileEntry) => {
-    let penalty = 0
-    const { data, error } = await supabase
-        .from('ProfileViews')
-        .select('viewed_at')
-        .eq('viewed_profile_id', profile['User-ID'])
-        .eq('user_id', user['User-ID'])
     
-    if (error) {
-        return penalty
-    }
+    // Get all profile views in one query
+    const { data: viewsData } = await supabase
+        .from('ProfileViews')
+        .select('viewed_profile_id, viewed_at')
+        .eq('user_id', user['User-ID'])
+        .in('viewed_profile_id', profiles.map(p => p['User-ID']))
 
-    // Check if data exists AND has at least one entry
-    if (data && data.length > 0) {
-        const viewedAt = data[0].viewed_at
-        const now = new Date()
-        const timeDiff = now.getTime() - new Date(viewedAt).getTime()
-        const hoursDiff = timeDiff / (1000 * 60 * 60)
-        // Logarithmic decay with base 2, rounded to 2 decimal places
-        penalty = 2 * Number((1 / (1 + Math.log2(1 + hoursDiff))).toFixed(2))
-    }
-    return penalty
+    // Create a map for quick lookup
+    const profileViewsMap = new Map(
+        viewsData?.map(view => [
+            view.viewed_profile_id,
+            new Date(view.viewed_at).getTime()
+        ]) || []
+    )
+
+    const indexedEntries = profiles.map(profile => {
+        const similarityIndex = calculateSimilarityIndex(
+            user, 
+            profile, 
+            profileViewsMap.get(profile['User-ID'])
+        )
+        return { profileEntry: profile, similarityIndex }
+    })
+
+    return indexedEntries
+        .sort((a, b) => b.similarityIndex - a.similarityIndex)
+        .map(entry => entry.profileEntry)
 }

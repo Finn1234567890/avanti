@@ -4,7 +4,7 @@ export async function openMessaging(platform: string, phoneNumber: string, name:
   try {
     // Clean the number but keep the + for country code
     const cleanedPhoneNumber = phoneNumber.trim()
-    const defaultMessage = encodeURIComponent(`Hi, ich bin ${name} von deiner Avanti UHH Netzwerk App!`)
+    const defaultMessage = encodeURIComponent(`Hi, ich bin ${name} von der Avanti Uni App!`)
 
     if (platform === 'whatsapp') {
       // WhatsApp requires country code without +

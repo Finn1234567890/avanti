@@ -24,4 +24,5 @@ export type ProfileEntry = {
   tags?: string[]
   description?: string
   party_mode?: boolean
+  on_campus?: boolean
 }

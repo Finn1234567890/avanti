@@ -10,6 +10,7 @@ export type ProfileEntry = {
   semester?: number
   preferences?: string[]
   party_mode?: boolean
+  on_campus?: boolean
 }
 
 export type FullProfileData = ProfileEntry & {
