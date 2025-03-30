@@ -311,6 +311,7 @@ export default function Profile() {
                 isEnabled={onCampus}
                 onToggle={() => toggleOnCampus()}
               />
+              <View style={styles.statSpacingSmall} />
               <OutingToggle
                 isEnabled={partyMode}
                 onToggle={() => togglePartyMode()}
@@ -525,4 +526,7 @@ const styles = StyleSheet.create({
   statSpacing: {
     height: 16,
   },
+  statSpacingSmall: {
+    height: 4,
+  }
 }) 
