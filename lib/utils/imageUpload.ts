@@ -4,7 +4,7 @@ import { decode } from 'base64-arraybuffer'
 type UploadImageParams = {
   base64Image: string
   userId: string
-  profileId: number
+  profileId: string
 }
 
 export async function uploadImage({ base64Image, userId, profileId }: UploadImageParams) {
