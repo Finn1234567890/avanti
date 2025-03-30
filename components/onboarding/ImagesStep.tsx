@@ -10,6 +10,9 @@ import { IMAGE_LIMITS } from '../../lib/utils/constants'
 import { supabase } from '../../lib/supabase/supabase'
 import { useAuth } from '../../lib/context/auth'
 import { uploadImage } from '../../lib/utils/imageUpload'
+import {v4 as uuidv4} from 'uuid'
+
+
 type ImageInfo = {
   uri: string
   base64: string
@@ -95,6 +98,10 @@ export function ImagesStep({ onBack }: OnboardingStepProps) {
     setError(null)
 
     try {
+      // Generate P-Id 
+      const profileID = uuidv4()
+
+
       // Get all stored onboarding data
       const name = await AsyncStorage.getItem('onboarding_name')
       const degreeType = await AsyncStorage.getItem('onboarding_degree_type')
@@ -103,12 +110,28 @@ export function ImagesStep({ onBack }: OnboardingStepProps) {
       const preferences = JSON.parse(await AsyncStorage.getItem('onboarding_preferences') || '[]')
       const bio = await AsyncStorage.getItem('onboarding_bio')
       const interests = JSON.parse(await AsyncStorage.getItem('onboarding_interests') || '[]')
+  
+      // Upload images first 
+      for (const image of images) {
+
+        if (!image.base64) {
+          console.error('Missing base64 for image:', image)
+          continue
+        }
+
+        await uploadImage({
+          base64Image: image.base64,
+          userId: session.user.id,
+          profileId: profileID
+        })
+      }
 
       // Create profile
       const { error: profileError } = await supabase
         .from('Profile')
         .insert([{
           'User-ID': session.user.id,
+          'P-ID': profileID,
           name,
           major,
           description: bio,
@@ -120,30 +143,6 @@ export function ImagesStep({ onBack }: OnboardingStepProps) {
 
       if (profileError) throw profileError
 
-      const { data: profile, error: fetchError } = await supabase
-        .from('Profile')
-        .select('P-ID')
-        .eq('User-ID', session.user.id)
-        .single()
-        .returns<{'P-ID': number}>()
-
-      if (fetchError || !profile) {
-        throw new Error('Profile not found after creation')
-      }
-
-      // Upload images
-      for (const image of images) {
-        if (!image.base64) {
-          console.error('Missing base64 for image:', image)
-          continue
-        }
-
-        await uploadImage({
-          base64Image: image.base64,
-          userId: session.user.id,
-          profileId: profile['P-ID']
-        })
-      }
 
       // Clear onboarding data
       await AsyncStorage.multiRemove([

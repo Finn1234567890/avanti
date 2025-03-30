@@ -1,7 +1,7 @@
 export type ProfileEntry = {
   name: string
   major: string
-  'P-ID': number
+  'P-ID': string 
   'User-ID': string
   description?: string
   tags?: string[]
