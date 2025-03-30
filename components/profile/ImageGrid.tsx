@@ -11,9 +11,9 @@ type Props = {
   minItems: number
 }
 
-export function ImageGrid({ 
+export function ImageGrid({
   images,
-  onDelete, 
+  onDelete,
   onAdd,
   maxItems,
   minItems,
@@ -34,16 +34,19 @@ export function ImageGrid({
     <View style={styles.container}>
       {images.map((item) => (
         <View key={item.url} style={styles.imageContainer}>
-          <Image 
+          <Image
             source={{ uri: item.url }}
             style={styles.image}
           />
-          <TouchableOpacity
-            style={styles.deleteButton}
-            onPress={() => images.length > minItems && handleDelete(item.url)}
-          >
-            <Text style={styles.deleteButtonText}>×</Text>
-          </TouchableOpacity>
+          {images.length > 2 &&
+            <TouchableOpacity
+              style={styles.deleteButton}
+              onPress={() => images.length > minItems && handleDelete(item.url)}
+            >
+              <Text style={styles.deleteButtonText}>×</Text>
+            </TouchableOpacity>
+          }
+
         </View>
       ))}
       {images.length < maxItems && (
@@ -65,7 +68,7 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     width: '31%',
-    aspectRatio: 4/6,
+    aspectRatio: 4 / 6,
     position: 'relative',
   },
   image: {
@@ -95,7 +98,7 @@ const styles = StyleSheet.create({
   addButton: {
     width: '31%',
     minHeight: 160,
-    aspectRatio: 4/6,
+    aspectRatio: 4 / 6,
     backgroundColor: colors.background.secondary,
     borderRadius: 12,
     alignItems: 'center',

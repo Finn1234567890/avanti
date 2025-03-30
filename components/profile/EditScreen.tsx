@@ -76,6 +76,7 @@ export function EditScreen({
 }: EditScreenProps) {
   const [phoneNumber, setPhoneNumber] = useState<string | null>(null)
   const { session } = useAuth()
+  const [imageErrorMessage, setImageErrorMessage] = useState(' Mindestens 2')
   const [searchTerm, setSearchTerm] = useState(profile?.major || '')
   const [suggestions, setSuggestions] = useState<string[]>([])
   const [majorFocused, setMajorFocused] = useState(false)
@@ -145,7 +146,12 @@ export function EditScreen({
     <ScrollView style={styles.container}>
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Bilder</Text>
+          <Text style={styles.sectionTitle}>Bilder 
+            {profile.images.length <= 2 &&
+              <Text style={styles.errorMessage}>  (Mind. 2)</Text>
+            }
+          </Text>
+          <Text> {profile.images.length} / 6</Text>
         </View>
         <ImageGrid 
           images={profile.images}
@@ -634,4 +640,8 @@ const styles = StyleSheet.create({
   interestIcon: {
     marginRight: 4,
   },
+  errorMessage: {
+    color: 'red',
+    fontSize: 12,
+  }
 }) 
