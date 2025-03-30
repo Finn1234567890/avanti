@@ -10,8 +10,7 @@ import { IMAGE_LIMITS } from '../../lib/utils/constants'
 import { supabase } from '../../lib/supabase/supabase'
 import { useAuth } from '../../lib/context/auth'
 import { uploadImage } from '../../lib/utils/imageUpload'
-import {v4 as uuidv4} from 'uuid'
-
+import * as Crypto from 'expo-crypto'
 
 type ImageInfo = {
   uri: string
@@ -96,10 +95,12 @@ export function ImagesStep({ onBack }: OnboardingStepProps) {
 
     setLoading(true)
     setError(null)
+  
+    // Generate P-Id 
+    const profileID = Crypto.randomUUID()
 
     try {
-      // Generate P-Id 
-      const profileID = uuidv4()
+     
 
 
       // Get all stored onboarding data
@@ -110,22 +111,16 @@ export function ImagesStep({ onBack }: OnboardingStepProps) {
       const preferences = JSON.parse(await AsyncStorage.getItem('onboarding_preferences') || '[]')
       const bio = await AsyncStorage.getItem('onboarding_bio')
       const interests = JSON.parse(await AsyncStorage.getItem('onboarding_interests') || '[]')
-  
-      // Upload images first 
+      
       for (const image of images) {
-
-        if (!image.base64) {
-          console.error('Missing base64 for image:', image)
-          continue
-        }
-
+        if (!image.base64) continue
         await uploadImage({
           base64Image: image.base64,
           userId: session.user.id,
           profileId: profileID
         })
       }
-
+      
       // Create profile
       const { error: profileError } = await supabase
         .from('Profile')
@@ -143,6 +138,7 @@ export function ImagesStep({ onBack }: OnboardingStepProps) {
 
       if (profileError) throw profileError
 
+    
 
       // Clear onboarding data
       await AsyncStorage.multiRemove([
@@ -159,7 +155,7 @@ export function ImagesStep({ onBack }: OnboardingStepProps) {
       router.replace('/(auth)/home')
     } catch (e) {
       console.error('Error completing onboarding:', e)
-      setError('Ein Fehler ist aufgetreten. Bitte versuche es erneut.')
+      setError('Ein Fehler ist aufgetreten. Bitte versuche es erneut. Falls das auch nicht klappt, starte die App neu.')
     } finally {
       setLoading(false)
     }
