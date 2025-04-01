@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Alert, Linking } from 'react-native'
+import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Alert, Linking, AppState } from 'react-native'
 import { useAuth } from '../../../lib/context/auth'
 import { supabase } from '../../../lib/supabase/supabase'
 import { SafeAreaWrapper } from '../../../components/SafeAreaWrapper'
@@ -95,8 +95,20 @@ export default function Profile() {
   useEffect(() => {
     loadProfile()
     loadFriendshipCount()
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange)
+    return () => {
+      subscription.remove()
+    }
   }, [])
 
+  const handleAppStateChange = (nextAppState: string) => {
+    if (nextAppState === 'active') {
+      console.log('App in foreground - reloading profile and friendship count')
+      loadProfile()
+      loadFriendshipCount()
+    }
+  }
 
   const loadProfile = async () => {
     setLoading(true)

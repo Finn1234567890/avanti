@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Alert, ActivityIndicator, Animated } from 'react-native'
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Alert, ActivityIndicator, Animated, Platform } from 'react-native'
 import { ImageIndicators } from './ImageIndicators'
 import { supabase } from '../../lib/supabase/supabase'
 import { useAuth } from '../../lib/context/auth'
@@ -17,8 +17,8 @@ import { INTEREST_ICONS } from '../onboarding/InterestsStep'
 type PreferenceKey = typeof PREFRENCES[number]
 
 const SCREEN_HEIGHT = Dimensions.get('window').height
-const NAV_HEIGHT = SCREEN_HEIGHT > 700 ? 195 : 133
-const PADDING_VERTICAL = SCREEN_HEIGHT > 700 ? 10 : 5
+const NAV_HEIGHT = Platform.OS === 'ios' ? (SCREEN_HEIGHT > 700 ? 195 : 133) : (SCREEN_HEIGHT > 700 ? 146 : 1500)
+const PADDING_VERTICAL = SCREEN_HEIGHT > 700 ? 10 : (Platform.OS === "android" ? 12 : 5)
 
 const PREFERENCE_ICONS = {
   'Lerngruppen oder Lernpartner': 'people',
@@ -533,7 +533,7 @@ export function ProfileCard({ profile, preview }: { profile: Profile, preview: b
                         transform: [{
                           rotate: rotationValue.interpolate({
                             inputRange: [0, 1],
-                            outputRange: ['0deg', '360deg']
+                            outputRange: ['0rad', `${2 * Math.PI}rad`]
                           })
                         }]
                       }}

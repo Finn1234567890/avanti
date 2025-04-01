@@ -19,7 +19,7 @@ export default function AuthLayout() {
         tabBarStyle: {
           backgroundColor: colors.background.primary,
           borderTopColor: colors.background.secondary,
-          height: screenHeight > 700 ? 88 : 70,
+          height: (screenHeight > 700 && Platform.OS === 'ios') ? 88 : (screenHeight > 700 ? 75 : 51),
           paddingTop: 10,
           paddingHorizontal: 20,
         },
@@ -42,7 +42,7 @@ export default function AuthLayout() {
       <Tabs.Screen
         name="home/index"
         options={{
-          title: 'Studenten',
+          title: `${screenHeight < 700 && Platform.OS === 'android' ? '' : 'Studenten'}`,
           tabBarIcon: ({ color }) => (
             <FontAwesome5 name="user-graduate" size={25} color={color} />
           ),
@@ -51,7 +51,7 @@ export default function AuthLayout() {
       <Tabs.Screen
         name="profile/index"
         options={{
-          title: 'Profil',
+          title: `${screenHeight < 700 && Platform.OS === 'android' ? '' : 'Profil'}`,
           tabBarIcon: ({ color }) => (
             <Ionicons name="person" size={25} color={color} />
           ),
@@ -60,7 +60,7 @@ export default function AuthLayout() {
       <Tabs.Screen
         name="friends/index"
         options={{
-          title: 'Freunde',
+          title: `${screenHeight < 700 && Platform.OS === 'android' ? '' : 'Freunde'}`,
           tabBarIcon: ({ color }) => (
             <Ionicons name="heart" marginBottom={-5} size={25} color={color} />
           ),

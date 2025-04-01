@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, FlatList, ViewToken, Dimensions, Platform, RefreshControl, TouchableOpacity, ScrollView } from 'react-native'
+import { View, Text, StyleSheet, FlatList, ViewToken, Dimensions, Platform, RefreshControl, TouchableOpacity, ScrollView, AppState } from 'react-native'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from '../../../lib/context/auth'
 import { supabase } from '../../../lib/supabase/supabase'
@@ -17,11 +17,11 @@ import { sortBySimilarity } from '../../../lib/utils/similaritySort'
 import { ProfileEntry } from '../../../lib/types/profile'
 import { Profile } from '../../../lib/types/profile'
 
-const BOTTOM_NAV_HEIGHT = Platform.OS === 'ios' ? 83 : 60
+const BOTTOM_NAV_HEIGHT = Platform.OS === 'ios' ? 83 : 60 
 
 const { height } = Dimensions.get('window')
 const SCREEN_HEIGHT = height - BOTTOM_NAV_HEIGHT
-const SNAP_HEIGHT = height > 700 ? 112 : 50
+const SNAP_HEIGHT = Platform.OS === 'ios' ? (height > 700 ? 112 : 50) : (height > 700 ? 84 : 55)
 
 export default function Home() {
   const { session } = useAuth()
@@ -55,6 +55,21 @@ export default function Home() {
     
     checkTutorialStatus()
   }, [])
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', handleAppStateChange)
+    return () => {
+      subscription.remove()
+    }
+  }, [])
+
+  const handleAppStateChange = (nextAppState: string) => {
+    if (nextAppState === 'active') {
+      console.log('App in foreground - reloading feed')
+      // Reinitialize profiles or reset state when app comes to foreground
+      initializeProfiles()
+    }
+  }
 
   const initializeProfiles = async () => {
     setLoading(true)

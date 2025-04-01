@@ -1,4 +1,4 @@
-import { View, StyleSheet, Animated } from 'react-native'
+import { View, StyleSheet, Animated, Platform } from 'react-native'
 import { useState, useRef } from 'react'
 import { SafeAreaWrapper } from '../../components/SafeAreaWrapper'
 import { OnboardingProgress } from '../../components/OnboardingProgress'
@@ -62,19 +62,10 @@ export default function Onboarding() {
   }
 
   const renderStep = () => {
-    const animatedStyle = {
-      transform: [
-        {
-          translateX: slideAnim.interpolate({
-            inputRange: [-1, 0, 1],
-            outputRange: ['-100%', '0%', '100%']
-          })
-        }
-      ]
-    }
+   
 
     return (
-      <Animated.View style={[styles.stepContainer, animatedStyle]}>
+      <Animated.View style={[styles.stepContainer]}>
         {currentStep === 1 && <WelcomeStep onNext={handleNext} />}
         {currentStep === 2 && <TermsStep onNext={handleNext} onBack={handleBack} />}
         {currentStep === 3 && <NameStep onNext={handleNext} onBack={handleBack} />}

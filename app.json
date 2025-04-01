@@ -20,6 +20,18 @@
         }
       ]
     ],
+    "android": {
+      "package": "com.avantiuhh.app",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/icons/avanti-icon-new.png",
+        "backgroundColor": "#FFFFFF"
+      },
+      "permissions": [
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
+      ]
+    },
     "ios": {
       "bundleIdentifier": "com.avantiuhh.app",
       "buildNumber": "10",
@@ -40,6 +52,11 @@
     "experiments": {
       "tsconfigPaths": true,
       "newArchEnabled": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "20baffb7-08da-4db1-8ff0-852cef6afcc5"
+      }
     }
   }
 }

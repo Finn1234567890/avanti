@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, Image, Linking } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, Image, Linking, Platform } from 'react-native'
 import { router } from 'expo-router'
 import { colors } from '../../lib/theme/colors'
 import { LinearGradient } from 'expo-linear-gradient'
@@ -19,21 +19,54 @@ export default function Welcome() {
       })
 
       if (credential.identityToken) {
-        // Log what we get from Apple
-
         const { data, error } = await supabase.auth.signInWithIdToken({
           provider: 'apple',
           token: credential.identityToken,
         })
 
         if (error) throw error
-
       }
     } catch (e: any) {
       if (e.code !== 'ERR_CANCELED') {
         console.error('Apple Sign In Error:', e)
       }
     }
+  }
+
+  const renderAuthButton = () => {
+    if (Platform.OS === 'ios') {
+      return (
+        <TouchableOpacity 
+          style={styles.appleButton}
+          onPress={handleAppleSignIn}
+        >
+          <View style={styles.appleButtonContent}>
+            <Ionicons name="logo-apple" size={24} style={styles.appleIcon} color="#000" />
+            <Text style={styles.appleButtonText}>
+              Mit Apple fortfahren
+            </Text>
+          </View>
+        </TouchableOpacity>
+      )
+    }
+
+    // Android button
+    return (
+      <View style={styles.googleButtonContainer}>
+        <TouchableOpacity 
+          style={[styles.googleButton, styles.disabledButton]}
+          disabled={true}
+        >
+          <View style={styles.googleButtonContent}>
+            <Ionicons name="logo-google" size={24} style={styles.googleIcon} color="#666" />
+            <Text style={styles.googleButtonText}>
+              Mit Google fortfahren
+            </Text>
+          </View>
+        </TouchableOpacity>
+        <Text style={styles.comingSoonText}>Coming Soon</Text>
+      </View>
+    )
   }
 
   return (
@@ -86,17 +119,7 @@ export default function Welcome() {
               </Text>
               , wie wir deine Daten verarbeiten.
             </Text>
-            <TouchableOpacity 
-              style={styles.appleButton}
-              onPress={handleAppleSignIn}
-            >
-              <View style={styles.appleButtonContent}>
-                <Ionicons name="logo-apple" size={24} style={styles.appleIcon} color="#000" />
-                <Text style={styles.appleButtonText}>
-                  Mit Apple fortfahren
-                </Text>
-              </View>
-            </TouchableOpacity>
+            {renderAuthButton()}
             <TouchableOpacity 
               style={[styles.signInButton, styles.emailButton]}
               onPress={() => router.push('/(public)/register')}
@@ -246,5 +269,41 @@ const styles = StyleSheet.create({
     color: colors.text.light,
     textDecorationLine: 'underline',
     fontWeight: '700',
+  },
+  googleButtonContainer: {
+    width: '100%',
+    alignItems: 'center',
+  },
+  googleButton: {
+    backgroundColor: '#FFF',
+    width: '100%',
+    padding: 16,
+    borderRadius: 30,
+  },
+  disabledButton: {
+    backgroundColor: '#E0E0E0',
+    opacity: 0.8,
+  },
+  googleButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  googleButtonText: {
+    color: '#666',
+    fontSize: 18,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  googleIcon: {
+    marginBottom: 4,
+  },
+  comingSoonText: {
+    color: colors.text.light,
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 4,
+    fontStyle: 'italic',
   },
 }) 
