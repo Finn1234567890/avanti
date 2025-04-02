@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, Alert, RefreshControl, ScrollView, Image, Linking, AppState } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, Alert, RefreshControl, ScrollView, Image, Linking, AppState, Dimensions, Platform } from 'react-native'
 import { SafeAreaWrapper } from '../../../components/SafeAreaWrapper'
 import { useAuth } from '../../../lib/context/auth'
 import { supabase } from '../../../lib/supabase/supabase'
@@ -13,7 +13,7 @@ import { ProfileEntry } from '@/lib/types/profile'
 import { Profile } from '../../../types/home/types'
 import { ProfileCard } from '../../../components/home/ProfileCard'
 import { router } from 'expo-router'
-
+import { BOTTOM_NAV_HEIGHT } from '../../../lib/utils/constants'
 
 export type FriendshipEntry = {
   'friendship-id': string
@@ -33,6 +33,8 @@ export type FriendshipWithProfile =
 export type FriendshipWithProfileAndImages = 
   FriendshipWithProfile & Profile
 
+const SCREEN_HEIGHT = Dimensions.get('window').height
+
 
 export default function Friends() {
   const { session } = useAuth()
@@ -41,6 +43,9 @@ export default function Friends() {
   const [refreshing, setRefreshing] = useState(false)
   const [userName, setUserName] = useState<string>('')
   const [isInspecting, setIsInspecting] = useState<FriendshipWithProfileAndImages | null>(null)
+  const [headerHeight, setHeaderHeight] = useState(0)
+
+  const FACTOR = Platform.OS === 'ios' ? 2 : 1
 
   useEffect(() => {
     loadFriendships()
@@ -53,7 +58,6 @@ export default function Friends() {
 
   const handleAppStateChange = (nextAppState: string) => {
     if (nextAppState === 'active') {
-      console.log('App in foreground - reloading friendships')
       loadFriendships()
     }
   }
@@ -354,7 +358,12 @@ export default function Friends() {
     <SafeAreaWrapper>
       {isInspecting ? (
         <View style={styles.container}>
-          <View style={styles.header}>
+          <View style={styles.header}
+           onLayout={(event) => {
+            const { height } = event.nativeEvent.layout;
+            setHeaderHeight(height);
+          }}
+        >
             <TouchableOpacity onPress={handleCloseInspect} style={styles.backButton}>
               <Ionicons name="chevron-back" size={28} color={colors.text.primary} />
             </TouchableOpacity>
@@ -373,6 +382,7 @@ export default function Friends() {
               images: isInspecting.images,
             }} 
             preview={true}
+            style={{ height: SCREEN_HEIGHT - FACTOR * headerHeight - BOTTOM_NAV_HEIGHT}}
           />
         </View>
       ) : (

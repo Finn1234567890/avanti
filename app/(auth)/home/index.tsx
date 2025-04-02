@@ -16,12 +16,11 @@ import { router } from 'expo-router'
 import { sortBySimilarity } from '../../../lib/utils/similaritySort'
 import { ProfileEntry } from '../../../lib/types/profile'
 import { Profile } from '../../../lib/types/profile'
+import { BOTTOM_NAV_HEIGHT } from '../../../lib/utils/constants'
 
-const BOTTOM_NAV_HEIGHT = Platform.OS === 'ios' ? 83 : 60 
-
-const { height } = Dimensions.get('window')
-const SCREEN_HEIGHT = height - BOTTOM_NAV_HEIGHT
-const SNAP_HEIGHT = Platform.OS === 'ios' ? (height > 700 ? 112 : 50) : (height > 700 ? 84 : 55)
+const windowHeight = Dimensions.get('window').height
+const NAVIGATION_HEIGHT = BOTTOM_NAV_HEIGHT // Already defined in your code
+const CARD_HEIGHT_WITH_HEADER = windowHeight  - NAVIGATION_HEIGHT
 
 export default function Home() {
   const { session } = useAuth()
@@ -38,6 +37,10 @@ export default function Home() {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [shouldShowTutorial, setShouldShowTutorial] = useState(false)
   const [sortedProfiles, setSortedProfiles] = useState<ProfileEntry[]>([])
+  const [headerHeight, setHeaderHeight] = useState(0)
+
+  const FACTOR = Platform.OS === 'ios' ? 2 : 1
+  const CARD_HEIGHT = CARD_HEIGHT_WITH_HEADER - FACTOR * headerHeight
 
   useEffect(() => {
     initializeProfiles()
@@ -65,7 +68,6 @@ export default function Home() {
 
   const handleAppStateChange = (nextAppState: string) => {
     if (nextAppState === 'active') {
-      console.log('App in foreground - reloading feed')
       // Reinitialize profiles or reset state when app comes to foreground
       initializeProfiles()
     }
@@ -246,10 +248,15 @@ export default function Home() {
 
   return (
     <SafeAreaWrapper>
-      <View style={styles.header}>
+      <View
+        style={styles.header}
+        onLayout={(event) => {
+          const { height } = event.nativeEvent.layout;
+          setHeaderHeight(height);
+        }}
+      >
         <Text style={styles.headerTitle}>Avanti</Text>
         <View style={styles.headerRight}>
-         
           <TouchableOpacity style={styles.headerButton} onPress={() => router.push('/(auth)/profile')}>
             <Ionicons name="menu" size={24} color={colors.text.primary} />
           </TouchableOpacity>
@@ -260,14 +267,15 @@ export default function Home() {
           <FlatList
             data={profiles}
             keyExtractor={(item) => item['P-ID'] || ''}
-            renderItem={({ item, index }) => (
+            renderItem={({ item }) => (
               <ProfileCard
                 profile={item}
                 preview={false}
+                style={{ height: CARD_HEIGHT }}
               />
             )}
             pagingEnabled
-            snapToInterval={SCREEN_HEIGHT - SNAP_HEIGHT}
+            snapToInterval={CARD_HEIGHT}
             decelerationRate="fast"
             viewabilityConfig={viewabilityConfig.current}
             onViewableItemsChanged={onViewableItemsChanged}

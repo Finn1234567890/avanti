@@ -17,7 +17,6 @@ import { INTEREST_ICONS } from '../onboarding/InterestsStep'
 type PreferenceKey = typeof PREFRENCES[number]
 
 const SCREEN_HEIGHT = Dimensions.get('window').height
-const NAV_HEIGHT = Platform.OS === 'ios' ? (SCREEN_HEIGHT > 700 ? 195 : 133) : (SCREEN_HEIGHT > 700 ? 146 : 1500)
 const PADDING_VERTICAL = SCREEN_HEIGHT > 700 ? 10 : (Platform.OS === "android" ? 12 : 5)
 
 const PREFERENCE_ICONS = {
@@ -32,7 +31,13 @@ const PREFERENCE_ICONS = {
 // Add type for interest keys
 type InterestKey = keyof typeof INTEREST_ICONS
 
-export function ProfileCard({ profile, preview }: { profile: Profile, preview: boolean }) {
+type ProfileCardProps = {
+  profile: Profile;
+  preview: boolean;
+  style?: object;
+};
+
+export function ProfileCard({ profile, preview, style }: ProfileCardProps) {
   const { session } = useAuth()
   const [connectionStatus, setConnectionStatus] = useState<string | null>(null)
   const hasMultipleImages = profile.images && profile.images.length > 1
@@ -434,7 +439,7 @@ export function ProfileCard({ profile, preview }: { profile: Profile, preview: b
 
 
   return (
-    <View style={styles.cardContainer}>
+    <View style={[styles.cardContainer, style]}>
       <View style={styles.profileCard}>
         <TouchableOpacity
           activeOpacity={0.95}
@@ -559,17 +564,17 @@ export function ProfileCard({ profile, preview }: { profile: Profile, preview: b
 
 const styles = StyleSheet.create({
   cardContainer: {
-    height: SCREEN_HEIGHT - NAV_HEIGHT,
     paddingVertical: PADDING_VERTICAL,
     minHeight: 500,
     maxHeight: '100%',
   },
   profileCard: {
     backgroundColor: colors.background.primary,
-    marginHorizontal: 10,
+    marginHorizontal: 6,
     borderRadius: 40,
     overflow: 'hidden',
     shadowColor: '#000',
+    maxHeight: '98%',
     shadowOffset: {
       width: 0,
       height: 2,

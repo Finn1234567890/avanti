@@ -4,6 +4,7 @@ import Ionicons from '@expo/vector-icons/Ionicons'
 import { Dimensions, Platform } from 'react-native'
 import { colors } from '../../lib/theme/colors'
 import { FontAwesome5 } from '@expo/vector-icons'
+import { BOTTOM_NAV_HEIGHT } from '@/lib/utils/constants'
 
 export default function AuthLayout() {
   const handleTabPress = () => {
@@ -19,7 +20,7 @@ export default function AuthLayout() {
         tabBarStyle: {
           backgroundColor: colors.background.primary,
           borderTopColor: colors.background.secondary,
-          height: (screenHeight > 700 && Platform.OS === 'ios') ? 88 : (screenHeight > 700 ? 75 : 51),
+          height: BOTTOM_NAV_HEIGHT,
           paddingTop: 10,
           paddingHorizontal: 20,
         },

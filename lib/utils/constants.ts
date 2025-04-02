@@ -3,6 +3,8 @@ export const IMAGE_LIMITS = {
   MAX_IMAGES: 6
 } as const
 
+export const BOTTOM_NAV_HEIGHT = 80
+
 export const TESTING_TUTORIAL = false 
 
 export const PROFILES_PER_PAGE = 1
