@@ -14,6 +14,7 @@ import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import { ViewMode } from '../../../components/profile/edit';
 import * as Haptics from 'expo-haptics';
 import { OutingToggle } from '@/components/profile/OutingToggle';
+import { CampusToggle } from '@/components/profile/CampusToggle'
 
 type StatCardProps = {
   icon: keyof typeof Ionicons.glyphMap
@@ -36,14 +37,14 @@ const StatCard = ({ icon, title, value, action, color, onPress }: StatCardProps)
         <Text style={styles.statTitle}>{title}</Text>
         <Text style={styles.statAction}>{action}
         </Text>
-        
+
       </View>
       <View style={styles.statContent}>
         <View style={styles.iconContainer}>
           <Ionicons name={icon} size={22} color={colors.text.light} />
         </View>
         <Text style={styles.statValue}>{value}</Text>
-        
+
       </View>
     </LinearGradient>
   </TouchableOpacity>
@@ -58,11 +59,11 @@ type MenuItemProps = {
 }
 
 const MenuItem = ({ icon, title, onPress, color = colors.text.primary, isDelete }: MenuItemProps) => (
-  <TouchableOpacity 
+  <TouchableOpacity
     style={[
       styles.menuItem,
       isDelete && styles.deleteMenuItem
-    ]} 
+    ]}
     onPress={onPress}
   >
     <LinearGradient
@@ -73,10 +74,10 @@ const MenuItem = ({ icon, title, onPress, color = colors.text.primary, isDelete 
     />
     <Ionicons name={icon} size={24} color={isDelete ? colors.text.light : color} />
     <Text style={[styles.menuTitle, { color: isDelete ? colors.text.light : color }]}>{title}</Text>
-    <Ionicons 
-      name="chevron-forward" 
-      size={24} 
-      color={isDelete ? colors.text.light : colors.text.secondary} 
+    <Ionicons
+      name="chevron-forward"
+      size={24}
+      color={isDelete ? colors.text.light : colors.text.secondary}
     />
   </TouchableOpacity>
 )
@@ -89,6 +90,7 @@ export default function Profile() {
   const [loading, setLoading] = useState(true)
   const [friendshipCount, setFriendshipCount] = useState(0)
   const [partyMode, setPartyMode] = useState(false)
+  const [onCampus, setOnCampus] = useState(false)
 
   useEffect(() => {
     loadProfile()
@@ -103,7 +105,7 @@ export default function Profile() {
 
       const { data, error } = await supabase
         .from('Profile')
-        .select('tags, name, major, P-ID, User-ID, created_at, description, preferences, semester, degree_type, party_mode')
+        .select('tags, name, major, P-ID, User-ID, created_at, description, preferences, semester, degree_type, party_mode, on_campus')
         .eq('User-ID', session.user.id)
         .single()
         .returns<ProfileEntry>()
@@ -128,6 +130,9 @@ export default function Profile() {
           }
         })
       )
+
+      setPartyMode(data.party_mode!)
+      setOnCampus(data.on_campus!)
 
       setProfile({
         ...data,
@@ -186,7 +191,7 @@ export default function Profile() {
     try {
       const { error } = await supabase.auth.signOut()
       if (error) throw error
-      
+
       await signOut()
 
     } catch (error) {
@@ -208,15 +213,33 @@ export default function Profile() {
       setPartyMode(!partyMode)
     } catch (error) {
       console.error('Error toggling party mode:', error)
-  }}
+    }
+  }
+
+  const toggleOnCampus = async () => {
+    console.log('toggling party mode')
+
+    try {
+      const { error } = await supabase
+        .from('Profile')
+        .update({ on_campus: !onCampus })
+        .eq('User-ID', session?.user?.id)
+
+      if (error) throw error
+
+      setOnCampus(!onCampus)
+    } catch (error) {
+      console.error('Error toggling campus mode:', error)
+    }
+  }
 
   return (
     <SafeAreaWrapper>
       {isEditing ? (
-        <EditProfile 
+        <EditProfile
           profile={profile!}
           view={viewMode}
-          onClose={() => {setViewMode('edit'), setIsEditing(false)}}
+          onClose={() => { setViewMode('edit'), setIsEditing(false) }}
           onSave={(updatedProfile) => {
             setProfile(updatedProfile)
             setIsEditing(false)
@@ -231,8 +254,8 @@ export default function Profile() {
               <Ionicons name="shield-checkmark" size={24} color={colors.text.primary} />
             </TouchableOpacity>
           </View>
-          
-          <ScrollView 
+
+          <ScrollView
             style={styles.scrollView}
             contentContainerStyle={styles.scrollContent}
           >
@@ -240,12 +263,12 @@ export default function Profile() {
               <View style={styles.imageContainer}>
                 {profile?.images[0] ? (
                   <>
-                    <ExpoImage 
+                    <ExpoImage
                       source={{ uri: profile.images[0].url }}
                       style={styles.profileImage}
                       contentFit="cover"
                     />
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={styles.editImageButton}
                       onPress={() => setIsEditing(true)}
                     >
@@ -262,23 +285,19 @@ export default function Profile() {
               <View style={styles.infoContainer}>
                 <Text style={styles.name}>{profile?.name}</Text>
                 <View style={styles.majorContainer}>
-                  <Ionicons 
-                    name="school" 
-                    size={20} 
+                  <Ionicons
+                    name="school"
+                    size={20}
                     color={colors.accent.secondary}
-                    style={styles.majorIcon} 
+                    style={styles.majorIcon}
                   />
                   <Text style={styles.major}>{profile?.major || 'Add your major'}</Text>
                 </View>
               </View>
             </View>
 
+
             <View style={styles.statsSection}>
-              <OutingToggle 
-                isEnabled={partyMode}
-                onToggle={() => togglePartyMode()}
-              />
-              <View style={styles.statSpacing} />
               <StatCard
                 icon="people"
                 title="Freundschaften"
@@ -287,35 +306,45 @@ export default function Profile() {
                 color={colors.accent.primary}
                 onPress={() => router.push('/(auth)/friends')}
               />
+              <View style={styles.statSpacing} />
+              <CampusToggle
+                isEnabled={onCampus}
+                onToggle={() => toggleOnCampus()}
+              />
+              <View style={styles.statSpacingSmall} />
+              <OutingToggle
+                isEnabled={partyMode}
+                onToggle={() => togglePartyMode()}
+              />          
             </View>
 
             <View style={styles.menuSection}>
-              <MenuItem icon="person" title="Profil bearbeiten" onPress={() => {setViewMode('edit'), setIsEditing(true)}} />
-              <MenuItem icon="images" title="Vorschau" onPress={() => {setViewMode('preview'), setIsEditing(true)}} />
-              <MenuItem 
-                icon="document-text" 
-                title="Nutzungsbedingungen" 
-                onPress={() => Linking.openURL('https://policiesavanti.vercel.app/terms')} 
+              <MenuItem icon="person" title="Profil bearbeiten" onPress={() => { setViewMode('edit'), setIsEditing(true) }} />
+              <MenuItem icon="images" title="Vorschau" onPress={() => { setViewMode('preview'), setIsEditing(true) }} />
+              <MenuItem
+                icon="document-text"
+                title="Nutzungsbedingungen"
+                onPress={() => Linking.openURL('https://policiesavanti.vercel.app/terms')}
               />
-              <MenuItem 
-                icon="lock-closed" 
-                title="Datenschutzerklärung" 
-                onPress={() => Linking.openURL('https://policiesavanti.vercel.app/')} 
+              <MenuItem
+                icon="lock-closed"
+                title="Datenschutzerklärung"
+                onPress={() => Linking.openURL('https://policiesavanti.vercel.app/')}
               />
-              <MenuItem 
-                icon="information-circle" 
-                title="Cookie-Richtlinie" 
-                onPress={() => Linking.openURL('https://policiesavanti.vercel.app/cookies')} 
+              <MenuItem
+                icon="information-circle"
+                title="Cookie-Richtlinie"
+                onPress={() => Linking.openURL('https://policiesavanti.vercel.app/cookies')}
               />
-              <MenuItem 
-                icon="flag" 
-                title="Melden & Blockieren" 
-                onPress={() => Linking.openURL('https://policiesavanti.vercel.app/support#melden')} 
+              <MenuItem
+                icon="flag"
+                title="Melden & Blockieren"
+                onPress={() => Linking.openURL('https://policiesavanti.vercel.app/support#melden')}
               />
               <MenuItem icon="log-out" title="Abmelden" onPress={handleSignOut} />
-              <MenuItem 
-                icon="trash" 
-                title="Account löschen" 
+              <MenuItem
+                icon="trash"
+                title="Account löschen"
                 onPress={handleDeleteAccount}
                 isDelete
               />
@@ -434,13 +463,6 @@ const styles = StyleSheet.create({
   statCard: {
     borderRadius: 16,
     padding: 16,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
     elevation: 3,
   },
   statHeader: {
@@ -497,4 +519,7 @@ const styles = StyleSheet.create({
   statSpacing: {
     height: 16,
   },
+  statSpacingSmall: {
+    height: 4,
+  }
 }) 

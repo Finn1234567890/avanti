@@ -89,8 +89,7 @@ export function BioStep({ onNext, onBack }: OnboardingStepProps) {
 
   const handleNext = async () => {
     if (!bio.trim()) {
-      setError('Bitte schreib etwas über dich')
-      return
+      setBio('')
     }
 
 
@@ -136,6 +135,7 @@ export function BioStep({ onNext, onBack }: OnboardingStepProps) {
           loading={loading}
           error={error}
           buttonDisabled={!bio.trim() || bio.length > MAX_CHARS}
+          skippable={true}
         >
           <View style={styles.inputContainer}>
             <Text style={styles.charCount}>

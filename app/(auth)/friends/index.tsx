@@ -39,7 +39,7 @@ export default function Friends() {
   const [friendships, setFriendships] = useState<FriendshipWithProfileAndImages[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
-  const [userName, setUserName] = useState<string | null>(null)
+  const [userName, setUserName] = useState<string>('')
   const [isInspecting, setIsInspecting] = useState<FriendshipWithProfileAndImages | null>(null)
 
   useEffect(() => {
@@ -184,7 +184,7 @@ export default function Friends() {
   const handleMessage = async (profile: FriendshipWithProfile, platform: string) => {
     if (!profile.displayedPhone) return
     try {
-      const messageBy = profile.userName
+      const messageBy = userName
       await openMessaging(platform, profile.displayedPhone, messageBy)
     } catch (error) {
       console.error('Error opening messaging:', error)

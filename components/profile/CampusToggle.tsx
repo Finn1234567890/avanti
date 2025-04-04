@@ -10,7 +10,7 @@ type OutingToggleProps = {
   onToggle: () => void;
 }
 
-export const OutingToggle = ({ isEnabled, onToggle }: OutingToggleProps) => {
+export const CampusToggle = ({ isEnabled, onToggle }: OutingToggleProps) => {
   const borderAnim = new Animated.Value(0);
   const glowAnim = new Animated.Value(0);
   const switchAnim = new Animated.Value(isEnabled ? 1 : 0);
@@ -96,7 +96,7 @@ export const OutingToggle = ({ isEnabled, onToggle }: OutingToggleProps) => {
         {isEnabled && (
           <>
             <LinearGradient
-              colors={['#FF2D55', '#FE3C72', '#FF2D55']}
+              colors={['#2DD4BF', '#0EA5E9', '#0284C7']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={[styles.gradientBorder]}
@@ -121,7 +121,7 @@ export const OutingToggle = ({ isEnabled, onToggle }: OutingToggleProps) => {
         ]}>
           <LinearGradient
             colors={isEnabled 
-              ? ['#FF2D55', '#FF3B69', '#FE3C72']
+              ? ['#2DD4BF', '#0EA5E9', '#0284C7']
               : ['#1E293B', '#334155', '#475569']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
@@ -133,14 +133,14 @@ export const OutingToggle = ({ isEnabled, onToggle }: OutingToggleProps) => {
             <View style={styles.content}>
               <View style={styles.leftContent}>
                 <FontAwesome5 
-                  name="glass-cheers" 
+                  name="building" 
                   size={24} 
                   color={colors.text.light}
                   style={[
                     styles.icon,
                   ]} 
                 />
-                <Text style={styles.title}>Heute unterwegs</Text>
+                <Text style={styles.title}>Am Campus</Text>
               </View>
               <View style={[styles.toggleSwitch, isEnabled && styles.toggleSwitchActive]}>
                 <Animated.View 
@@ -152,7 +152,7 @@ export const OutingToggle = ({ isEnabled, onToggle }: OutingToggleProps) => {
               </View>
             </View>
             <Text style={styles.subtext}>
-              Zeige anderen, dass du heute unterwegs bist oder Bock hast was zu unternehmen. Profile mit aktivem Status werden bevorzugt angezeigt!
+              Las es Andere wissen, wenn du gerade am Campus bist. So könnt ihr euch ganz einfach treffen.  
             </Text>
           </LinearGradient>
         </Animated.View>
@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: 'transparent',
     borderWidth: 2,
-    borderColor: 'rgba(255, 45, 85, 0.5)',
+    borderColor: 'rgba(14, 165, 233, 0.5)',
   },
   borderMask: {
     position: 'absolute',
@@ -194,23 +194,8 @@ const styles = StyleSheet.create({
   contentCard: {
     borderRadius: 16,
     padding: 16,
-    shadowColor: '#1E293B',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 5,
   },
   contentCardActive: {
-    shadowColor: '#FF2D55',
-    shadowOffset: {
-      width: 4,
-      height: 10,
-    },
-    shadowOpacity: 1,
-    shadowRadius: 16,
     elevation: 12,
   },
   content: {

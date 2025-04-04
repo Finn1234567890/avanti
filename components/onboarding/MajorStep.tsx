@@ -86,12 +86,10 @@ export function MajorStep({ onNext, onBack }: OnboardingStepProps) {
 
   const handleNext = async () => {
     if (!selectedMajor) {
-      setError('Bitte wähle deinen Studiengang')
-      return
+      setSelectedMajor('')
     }
     if (!degreeType) {
-      setError('Bitte wähle deinen Abschluss')
-      return
+      setDegreeType('')
     }
     onNext()
   }
@@ -127,6 +125,7 @@ export function MajorStep({ onNext, onBack }: OnboardingStepProps) {
       buttonDisabled={!selectedMajor || !degreeType}
       error={error}
       keepKeyboardUp={!selectedMajor}
+      skippable={true}
     >
       <View style={styles.container}>
         <View style={styles.topInputsRow}>

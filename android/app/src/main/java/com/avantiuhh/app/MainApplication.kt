@@ -1,4 +1,4 @@
-package com.avanti.app
+package com.avantiuhh.app
 
 import android.app.Application
 import android.content.res.Configuration

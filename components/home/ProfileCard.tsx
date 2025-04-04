@@ -375,22 +375,40 @@ export function ProfileCard({ profile, preview }: { profile: Profile, preview: b
           {profile.semester && ` • ${profile.semester}. Semester`}
         </Text>
       </View>
-      {profile.party_mode && (
-        <LinearGradient
-          colors={['#FF2D55', '#FF3B69', '#FE3C72']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.partyModeTag}
-        >
-          <Ionicons 
-            name="beer" 
-            size={14} 
-            color={colors.text.light}
-            style={styles.partyModeIcon} 
-          />
-          <Text style={styles.partyModeText}>Heute unterwegs</Text>
-        </LinearGradient>
-      )}
+      <View style={styles.statusTags}>
+        {profile.party_mode && (
+          <LinearGradient
+            colors={['#FF2D55', '#FF3B69', '#FE3C72']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.partyModeTag}
+          >
+            <Ionicons 
+              name="beer" 
+              size={14} 
+              color={colors.text.light}
+              style={styles.partyModeIcon} 
+            />
+            <Text style={styles.partyModeText}>Heute unterwegs</Text>
+          </LinearGradient>
+        )}
+        {profile.on_campus && (
+          <LinearGradient
+            colors={['#34C759', '#32D184', '#2EDC9C']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.campusTag}
+          >
+            <Ionicons 
+              name="location" 
+              size={14} 
+              color={colors.text.light}
+              style={styles.campusIcon} 
+            />
+            <Text style={styles.campusText}>Am Campus</Text>
+          </LinearGradient>
+        )}
+      </View>
     </View>
   )
 
@@ -551,14 +569,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 10,
     borderRadius: 40,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
     flex: 1,
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
     elevation: 5,
   },
   imageContainer: {
@@ -759,5 +770,26 @@ const styles = StyleSheet.create({
     zIndex: 10,
     backgroundColor: 'rgba(0, 0, 0, 0.3)',
     borderRadius: 20,
+  },
+  statusTags: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  campusTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+  },
+  campusIcon: {
+    marginRight: 4,
+  },
+  campusText: {
+    color: colors.text.light,
+    fontSize: 12,
+    paddingRight: 3,
+    fontWeight: '600',
   },
 }) 

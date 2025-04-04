@@ -54,8 +54,7 @@ export function PreferencesStep({ onNext, onBack }: OnboardingStepProps) {
 
   const handleNext = () => {
     if (selectedPreferences.length < 1) {
-      setError('Bitte wähle mindestens eine Option')
-      return
+      setSelectedPreferences([])
     }
     onNext()
   }
@@ -68,6 +67,7 @@ export function PreferencesStep({ onNext, onBack }: OnboardingStepProps) {
       onBack={onBack}
       buttonDisabled={selectedPreferences.length < 1}
       error={error}
+      skippable={true}
     >
       <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
         <Text style={styles.hint}>
@@ -139,11 +139,6 @@ const styles = StyleSheet.create({
   preferenceButtonSelected: {
     backgroundColor: colors.accent.primary + '15',
     borderColor: colors.accent.primary,
-    shadowColor: colors.accent.primary,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 3,
   },
   icon: {
     marginRight: 16,

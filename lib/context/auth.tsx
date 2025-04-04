@@ -2,8 +2,9 @@ import { createContext, useContext, useEffect, useState } from 'react'
 import { Session } from '@supabase/supabase-js'
 import { supabase } from '../supabase/supabase'
 import { router, useSegments } from 'expo-router'
-import { View, ActivityIndicator, StyleSheet } from 'react-native'
+import { View, ActivityIndicator, StyleSheet, AppStateStatus, AppState } from 'react-native'
 import { LoadingView } from '@/components/home/LoadingView'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 
 export type AuthContextType = {
   session: Session | null
@@ -106,8 +107,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const initializeAuth = async () => {
       try {
-        const { data: { session: initialSession } } = await supabase.auth.getSession()
+        const { data: { session: initialSession }, error: initialError } = await supabase.auth.getSession()
         setSession(initialSession)
+
+        if (initialError) {
+          throw new Error(initialError.message)
+        }
         
         if (initialSession?.user) {
           const [profileExists, phoneExists] = await Promise.all([
@@ -126,6 +131,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     initializeAuth()
 
+    const handleAppStateChange = async (nextAppState: AppStateStatus) => {
+      if (nextAppState === 'active') {
+        console.log('app returned from background')
+        await initializeAuth()
+      }
+    }
+
+    const appStateListener = AppState.addEventListener('change', handleAppStateChange)
+    
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
       setSession(newSession)
       
@@ -142,10 +156,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      subscription.unsubscribe()
+      appStateListener.remove()
+    }
   }, [])
 
   useProtectedRoute(session, hasPhone, hasProfile)
+
+  useEffect(() => {
+    const saveState = async () => {
+      if (session) {
+        await AsyncStorage.setItem('session', JSON.stringify(session));
+      }
+    };
+    saveState();
+  }, [session]);
+
+  useEffect(() => {
+    const restoreState = async () => {
+      const savedSession = await AsyncStorage.getItem('session');
+      if (savedSession) {
+        setSession(JSON.parse(savedSession));
+      }
+    };
+    restoreState();
+  }, []);
 
   const signUp = async (email: string, password: string) => {
     try {
@@ -179,6 +215,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     )
   }
 
+  console.log('initializing', initializing)
+
   return (
     <AuthContext.Provider value={{ 
       session, 
@@ -189,7 +227,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       },
       signUp,
       signIn,
-      loading: initializing
+      loading: true
     }}>
       {children}
     </AuthContext.Provider>
