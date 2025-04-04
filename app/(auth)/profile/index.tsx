@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Alert, Linking } from 'react-native'
+import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Alert, Linking, AppStateStatus, AppState } from 'react-native'
 import { useAuth } from '../../../lib/context/auth'
 import { supabase } from '../../../lib/supabase/supabase'
 import { SafeAreaWrapper } from '../../../components/SafeAreaWrapper'
@@ -12,7 +12,6 @@ import { colors } from '../../../lib/theme/colors'
 import type { ProfileEntry, FullProfileData } from '../../../types/profile/types'
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import { ViewMode } from '../../../components/profile/edit';
-import * as Haptics from 'expo-haptics';
 import { OutingToggle } from '@/components/profile/OutingToggle';
 import { CampusToggle } from '@/components/profile/CampusToggle'
 
@@ -95,6 +94,21 @@ export default function Profile() {
   useEffect(() => {
     loadProfile()
     loadFriendshipCount()
+
+    const handleAppStateChange = async (nextAppState: AppStateStatus) => {
+      if (nextAppState === 'active') {
+        console.log('app returned from background profile')
+        await loadProfile()
+        await loadFriendshipCount()
+      }
+    }
+
+    const appStateListener = AppState.addEventListener('change', handleAppStateChange)
+
+    return () => {
+      appStateListener.remove()
+    }
+
   }, [])
 
 
@@ -158,6 +172,7 @@ export default function Profile() {
       if (error) throw error
       setFriendshipCount(data?.length || 0)
     } catch (error) {
+      console.error('Error loading friendship count:', error)
     }
   }
 

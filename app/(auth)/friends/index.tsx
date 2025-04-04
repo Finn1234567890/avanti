@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, Alert, RefreshControl, ScrollView, Image, Linking } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, Alert, RefreshControl, ScrollView, Image, Linking, AppStateStatus, AppState } from 'react-native'
 import { SafeAreaWrapper } from '../../../components/SafeAreaWrapper'
 import { useAuth } from '../../../lib/context/auth'
 import { supabase } from '../../../lib/supabase/supabase'
@@ -44,6 +44,19 @@ export default function Friends() {
 
   useEffect(() => {
     loadFriendships()
+
+    const handleAppStateChange = async (nextAppState: AppStateStatus) => {
+      if (nextAppState === 'active') {
+        console.log('app returned from background friends')
+        await loadFriendships()
+      }
+    }
+
+    const appStateListener = AppState.addEventListener('change', handleAppStateChange)
+
+    return () => {
+      appStateListener.remove()
+    }
   }, [])
 
   const loadFriendships = async () => {
