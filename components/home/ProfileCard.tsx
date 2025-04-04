@@ -569,14 +569,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 10,
     borderRadius: 40,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
     flex: 1,
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
     elevation: 5,
   },
   imageContainer: {

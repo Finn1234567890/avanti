@@ -194,23 +194,8 @@ const styles = StyleSheet.create({
   contentCard: {
     borderRadius: 16,
     padding: 16,
-    shadowColor: '#1E293B',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 5,
   },
   contentCardActive: {
-    shadowColor: '#0EA5E9',
-    shadowOffset: {
-      width: 4,
-      height: 10,
-    },
-    shadowOpacity: 1,
-    shadowRadius: 16,
     elevation: 12,
   },
   content: {

@@ -17,6 +17,7 @@ type Props = {
   hint?: string
   useKeyboardAvoid?: boolean
   keepKeyboardUp?: boolean
+  skippable?: boolean
 }
 
 export function OnboardingScreenLayout({
@@ -32,6 +33,7 @@ export function OnboardingScreenLayout({
   hint,
   useKeyboardAvoid = true,
   keepKeyboardUp = false,
+  skippable = false,
 }: Props) {
   const ContentWrapper = useKeyboardAvoid ? KeyboardAvoidingView : View
 
@@ -63,6 +65,11 @@ export function OnboardingScreenLayout({
                   onPress={onBack || (() => router.back())}
                 >
                   <Ionicons name="chevron-back" size={32} color={colors.text.primary} />
+                </TouchableOpacity>
+              )}
+              {skippable && (
+                <TouchableOpacity style={styles.skipButton} onPress={handlePress}>
+                  <Text style={styles.skipButtonText}>SKIP</Text>
                 </TouchableOpacity>
               )}
 
@@ -200,6 +207,17 @@ const styles = StyleSheet.create({
   submitButtonText: {
     color: colors.text.light,
     fontSize: 18,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  skipButton: {
+    position: 'absolute',
+    top: 32,
+    right: 20,
+  },
+  skipButtonText: {
+    color: colors.text.secondary,
+    fontSize: 24,
     fontWeight: '600',
     textAlign: 'center',
   },

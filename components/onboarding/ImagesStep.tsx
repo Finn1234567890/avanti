@@ -105,11 +105,11 @@ export function ImagesStep({ onBack }: OnboardingStepProps) {
 
       // Get all stored onboarding data
       const name = await AsyncStorage.getItem('onboarding_name')
-      const degreeType = await AsyncStorage.getItem('onboarding_degree_type')
+      const degreeType = await AsyncStorage.getItem('onboarding_degree_type') || ""
       const semester = await AsyncStorage.getItem('onboarding_semester') || null
-      const major = await AsyncStorage.getItem('onboarding_major')
+      const major = await AsyncStorage.getItem('onboarding_major') || ""
       const preferences = JSON.parse(await AsyncStorage.getItem('onboarding_preferences') || '[]')
-      const bio = await AsyncStorage.getItem('onboarding_bio')
+      const bio = await AsyncStorage.getItem('onboarding_bio') || ""
       const interests = JSON.parse(await AsyncStorage.getItem('onboarding_interests') || '[]')
       
       for (const image of images) {

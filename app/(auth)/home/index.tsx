@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, FlatList, ViewToken, Dimensions, Platform, RefreshControl, TouchableOpacity, ScrollView } from 'react-native'
+import { View, Text, StyleSheet, FlatList, ViewToken, Dimensions, Platform, RefreshControl, TouchableOpacity, ScrollView, AppState, AppStateStatus } from 'react-native'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from '../../../lib/context/auth'
 import { supabase } from '../../../lib/supabase/supabase'
@@ -41,6 +41,19 @@ export default function Home() {
 
   useEffect(() => {
     initializeProfiles()
+
+    const handleAppStateChange = async (nextAppState: AppStateStatus) => {
+      if (nextAppState === 'active') {
+        console.log('app returned from background feed')
+        await initializeProfiles()
+      }
+    }
+
+    const appStateListener = AppState.addEventListener('change', handleAppStateChange)
+
+    return () => {
+      appStateListener.remove()
+    }
   }, [])
 
   useEffect(() => {
@@ -77,7 +90,7 @@ export default function Home() {
       await loadProfilePage(0, sortedProfiles, userProfileData)
     } catch (e) {
       setError('Failed to load profiles')
-    } finally {
+    } finally { 
       setLoading(false)
     }
   }
