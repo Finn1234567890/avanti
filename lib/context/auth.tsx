@@ -1,10 +1,11 @@
 import { createContext, useContext, useEffect, useState } from 'react'
-import { Session } from '@supabase/supabase-js'
+import { AuthSession, Session } from '@supabase/supabase-js'
 import { supabase } from '../supabase/supabase'
 import { router, useSegments } from 'expo-router'
 import { View, ActivityIndicator, StyleSheet, AppStateStatus, AppState } from 'react-native'
 import { LoadingView } from '@/components/home/LoadingView'
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import { waitForStorage } from '../utils/helper'
 
 export type AuthContextType = {
   session: Session | null
@@ -104,15 +105,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+
+  const getSessionWithTimeout = async (
+    timeout = 3000
+  ): Promise<{ data: { session: AuthSession | null }; error: Error | null }> => {
+    console.log('Getting session with timeout')
+    try {
+      return await Promise.race([
+        supabase.auth.getSession(),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('getSession() timeout')), timeout)
+        )
+      ]) as Promise<{ data: { session: AuthSession | null }; error: Error | null }>
+    } catch (error) {
+      console.log('Error getting session:', error)
+      throw error
+    }
+  }
+
   useEffect(() => {
     const initializeAuth = async () => {
       try {
-        const { data: { session: initialSession }, error: initialError } = await supabase.auth.getSession()
-        setSession(initialSession)
+        console.log('initializing auth')
+        const { data: { session: initialSession }, error: initialError } = await getSessionWithTimeout()
+        
+        if (initialSession) {
+          console.log('initial session', initialSession)
+        }
 
+        
         if (initialError) {
+          console.error('Error initializing auth:', initialError)
           throw new Error(initialError.message)
         }
+        setSession(initialSession)
+
         
         if (initialSession?.user) {
           const [profileExists, phoneExists] = await Promise.all([
@@ -123,9 +150,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setHasPhone(phoneExists)
         }
       } catch (e) {
-        console.error('Error initializing auth:', e)
+        console.log('Error initializing auth:', e)
       } finally {
         setInitializing(false)
+        console.log('initializing auth done')
       }
     }
 
@@ -133,8 +161,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const handleAppStateChange = async (nextAppState: AppStateStatus) => {
       if (nextAppState === 'active') {
-        console.log('app returned from background')
-        await initializeAuth()
+        setTimeout(async () => {
+          console.log('[AppState] Running auth refresh after 1s')
+          await initializeAuth()
+        }, 1000)
       }
     }
 

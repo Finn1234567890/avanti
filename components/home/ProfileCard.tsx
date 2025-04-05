@@ -34,7 +34,7 @@ type InterestKey = keyof typeof INTEREST_ICONS
 
 export function ProfileCard({ profile, preview }: { profile: Profile, preview: boolean }) {
   const { session } = useAuth()
-  const [connectionStatus, setConnectionStatus] = useState<string | null>(null)
+  const [connectionStatus, setConnectionStatus] = useState<boolean>(false)
   const hasMultipleImages = profile.images && profile.images.length > 1
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [rotationValue] = useState(new Animated.Value(0))
@@ -42,32 +42,12 @@ export function ProfileCard({ profile, preview }: { profile: Profile, preview: b
   const [buttonColorValue] = useState(new Animated.Value(0))
 
   useEffect(() => {
-    checkExistingConnection() 
-    
     if (profile.images) {
       profile.images.forEach(img => {
         ExpoImage.prefetch(img.url)
       })
     }
   }, [])
-
-
-  const checkExistingConnection = async () => {
-    try {
-      if (!session?.user?.id) return
-
-      const { data, error } = await supabase
-        .from('Friendships')
-        .select('status')
-        .or(`requester-ID.eq.${session.user.id},receiver-ID.eq.${session.user.id}`)
-        .or(`requester-ID.eq.${profile['User-ID']},receiver-ID.eq.${profile['User-ID']}`)
-        .single()
-
-      if (error && error.code !== 'PGRST116') throw error // PGRST116 is "no rows returned"
-      if (data) setConnectionStatus(data.status)
-    } catch (error) {
-    }
-  }
 
 
   const animateButton = () => {
@@ -121,7 +101,7 @@ export function ProfileCard({ profile, preview }: { profile: Profile, preview: b
       if (!session?.user?.id) return
 
       // If there's a pending request, cancel it
-      if (connectionStatus === 'pending') {
+      if (connectionStatus) {
         // Reset animation values immediately when canceling
         rotationValue.setValue(0)
         buttonColorValue.setValue(0)
@@ -138,7 +118,7 @@ export function ProfileCard({ profile, preview }: { profile: Profile, preview: b
 
         if (error) throw error
 
-        setConnectionStatus(null)
+        setConnectionStatus(false)
         return
       }
 
@@ -158,7 +138,7 @@ export function ProfileCard({ profile, preview }: { profile: Profile, preview: b
 
       if (error) throw error
 
-      setConnectionStatus('pending')
+      setConnectionStatus(true)
     } catch (error) {
       // Reset animation values on error
       rotationValue.setValue(0)
@@ -492,7 +472,7 @@ export function ProfileCard({ profile, preview }: { profile: Profile, preview: b
               style={[
                 styles.connectButtonContainer,
                 {
-                  backgroundColor: connectionStatus === 'pending' 
+                  backgroundColor: connectionStatus 
                     ? colors.accent.primary 
                     : buttonBackgroundColor,
                   transform: [{ scale: scaleValue }],
@@ -506,27 +486,21 @@ export function ProfileCard({ profile, preview }: { profile: Profile, preview: b
             >
               <TouchableOpacity 
                 style={styles.connectButton}
-                onPress={connectionStatus === 'accepted' ? handleMessage : handleConnect}
+                onPress={handleConnect}
               >
-                {connectionStatus === 'accepted' ? (
-                  <Ionicons 
-                    name="chatbubble-outline"
-                    size={28} 
-                    color={colors.text.light}
-                  />
-                ) : (
+                 
                   <View style={styles.connectButtonContent}>
                     <Text 
                       style={[
                         styles.connectButtonText,
                         { 
-                          color: connectionStatus === 'pending' 
+                          color: connectionStatus 
                             ? colors.text.light 
                             : "black"
                         }
                       ]}
                     >
-                      {connectionStatus === 'pending' ? 'Angefragt' : 'Verbinden'}
+                      {connectionStatus ? 'Angefragt' : 'Verbinden'}
                     </Text>
                     <Animated.View
                       style={{
@@ -539,15 +513,15 @@ export function ProfileCard({ profile, preview }: { profile: Profile, preview: b
                       }}
                     >
                       <Ionicons 
-                        name={connectionStatus === 'pending' ? 'checkmark' : 'link'}
+                        name={connectionStatus ? 'checkmark' : 'link'}
                         size={18} 
-                        color={connectionStatus === 'pending' 
+                        color={connectionStatus
                           ? colors.text.light 
                           : 'black'}
                       />
                     </Animated.View>
                   </View>
-                )}
+                
               </TouchableOpacity>
             </Animated.View>
           </View>

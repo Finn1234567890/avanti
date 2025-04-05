@@ -86,7 +86,14 @@ export default function Friends() {
         .or(`requester-ID.eq.${session.user.id},receiver-ID.eq.${session.user.id}`)
         .returns<FriendshipEntry[]>()
 
-      if (error) throw error
+
+      if (friendshipsData) {
+        console.log('friendshipsData', friendshipsData)
+      }  
+      if (error) {
+        console.error('Error fetching friendships:', error)
+        throw error
+      }
 
 
       if (friendshipsData) {

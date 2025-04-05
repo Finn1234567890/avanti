@@ -6,7 +6,7 @@ const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!
 
 // Clear any stored session data
-AsyncStorage.removeItem('supabase-auth-token')
+// AsyncStorage.removeItem('supabase-auth-token')
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
