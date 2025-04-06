@@ -1,11 +1,9 @@
-import { createContext, useContext, useEffect, useState } from 'react'
-import { AuthSession, Session } from '@supabase/supabase-js'
+import { createContext, useContext, useEffect, useRef, useState } from 'react'
+import { Session } from '@supabase/supabase-js'
 import { supabase } from '../supabase/supabase'
 import { router, useSegments } from 'expo-router'
-import { View, ActivityIndicator, StyleSheet, AppStateStatus, AppState } from 'react-native'
+import { View, ActivityIndicator, StyleSheet, AppState, AppStateStatus, Alert } from 'react-native'
 import { LoadingView } from '@/components/home/LoadingView'
-import AsyncStorage from '@react-native-async-storage/async-storage'
-import { waitForStorage } from '../utils/helper'
 
 export type AuthContextType = {
   session: Session | null
@@ -71,10 +69,10 @@ function useProtectedRoute(session: Session | null, hasPhone: boolean, hasProfil
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [initializing, setInitializing] = useState(true)
   const [session, setSession] = useState<Session | null>(null)
   const [hasPhone, setHasPhone] = useState(false)
   const [hasProfile, setHasProfile] = useState(false)
+  const [loading, setLoading] = useState(true)
 
   const checkProfile = async (userId: string) => {
     const { data } = await supabase
@@ -106,112 +104,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
 
-  const getSessionWithTimeout = async (
-    timeout = 3000
-  ): Promise<{ data: { session: AuthSession | null }; error: Error | null }> => {
-    console.log('Getting session with timeout')
-    try {
-      return await Promise.race([
-        supabase.auth.getSession(),
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('getSession() timeout')), timeout)
-        )
-      ]) as Promise<{ data: { session: AuthSession | null }; error: Error | null }>
-    } catch (error) {
-      console.log('Error getting session:', error)
-      throw error
-    }
-  }
-
   useEffect(() => {
-    const initializeAuth = async () => {
-      try {
-        console.log('initializing auth')
-        const { data: { session: initialSession }, error: initialError } = await getSessionWithTimeout()
-        
-        if (initialSession) {
-          console.log('initial session', initialSession)
-        }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      console.log(_event)
 
-        
-        if (initialError) {
-          console.error('Error initializing auth:', initialError)
-          throw new Error(initialError.message)
-        }
-        setSession(initialSession)
-
-        
-        if (initialSession?.user) {
+      console.log(newSession)
+      setSession(newSession)
+    
+      setTimeout(async () => {
+        if (newSession?.user) {
           const [profileExists, phoneExists] = await Promise.all([
-            checkProfile(initialSession.user.id),
-            checkPhone(initialSession.user.id)
+            checkProfile(newSession.user.id),
+            checkPhone(newSession.user.id)
           ])
           setHasProfile(profileExists)
           setHasPhone(phoneExists)
+        } else {
+          setHasProfile(false)
+          setHasPhone(false)
         }
-      } catch (e) {
-        console.log('Error initializing auth:', e)
-      } finally {
-        setInitializing(false)
-        console.log('initializing auth done')
-      }
-    }
-
-    initializeAuth()
-
-    const handleAppStateChange = async (nextAppState: AppStateStatus) => {
-      if (nextAppState === 'active') {
-        setTimeout(async () => {
-          console.log('[AppState] Running auth refresh after 1s')
-          await initializeAuth()
-        }, 1000)
-      }
-    }
-
-    const appStateListener = AppState.addEventListener('change', handleAppStateChange)
-    
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
-      setSession(newSession)
-      
-      if (newSession?.user) {
-        const [profileExists, phoneExists] = await Promise.all([
-          checkProfile(newSession.user.id),
-          checkPhone(newSession.user.id)
-        ])
-        setHasProfile(profileExists)
-        setHasPhone(phoneExists)
-      } else {
-        setHasProfile(false)
-        setHasPhone(false)
-      }
+        setLoading(false)
+      }, 0)
     })
 
-    return () => {
-      subscription.unsubscribe()
-      appStateListener.remove()
+    const onAppStateChange = (nextAppState: AppStateStatus) => {
+      if (nextAppState === 'active') {
+        console.log('active')
+      }
     }
+    
+
+    const stateListener = AppState.addEventListener('change', onAppStateChange)
+
+    return () => {
+      stateListener.remove()
+      subscription.unsubscribe()
+    }
+
+    
   }, [])
 
   useProtectedRoute(session, hasPhone, hasProfile)
-
-  useEffect(() => {
-    const saveState = async () => {
-      if (session) {
-        await AsyncStorage.setItem('session', JSON.stringify(session));
-      }
-    };
-    saveState();
-  }, [session]);
-
-  useEffect(() => {
-    const restoreState = async () => {
-      const savedSession = await AsyncStorage.getItem('session');
-      if (savedSession) {
-        setSession(JSON.parse(savedSession));
-      }
-    };
-    restoreState();
-  }, []);
 
   const signUp = async (email: string, password: string) => {
     try {
@@ -237,7 +170,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  if (initializing) {
+  const signOut = async () => {
+    await supabase.auth.signOut()
+  }
+
+  if (loading) {
     return (
       <View style={styles.loadingContainer}>
         <LoadingView />
@@ -245,19 +182,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     )
   }
 
-  console.log('initializing', initializing)
-
   return (
     <AuthContext.Provider value={{ 
       session, 
       hasProfile,
       refreshProfile,
-      signOut: async () => {
-        await supabase.auth.signOut()
-      },
+      signOut,
       signUp,
       signIn,
-      loading: true
+      loading
     }}>
       {children}
     </AuthContext.Provider>

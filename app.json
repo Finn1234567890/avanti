@@ -2,7 +2,7 @@
   "expo": {
     "name": "Avanti UHH",
     "slug": "avanti",
-    "version": "1.2.2",
+    "version": "1.2.3",
     "scheme": "avanti",
     "orientation": "portrait",
     "icon": "./assets/images/icons/avanti-icon-new.png",

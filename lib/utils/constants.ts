@@ -7,7 +7,7 @@ export const SESSION_TIMEOUT_MS = 1000 * 60 * 10 // 10 minutes
 
 export const TESTING_TUTORIAL = false 
 
-export const PROFILES_PER_PAGE = 1
+export const PROFILES_PER_PAGE = 3 
 
 export const RECREATIONAL_INTERESTS = [
   'Sport / Fitness',
